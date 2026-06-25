@@ -43,11 +43,14 @@ docker compose -f docker/docker-compose.yml up --build
 
 ### 3. Desarrollo local (sin Docker completo)
 
-**PostgreSQL** (solo DB):
+**PostgreSQL** (solo DB — usa puerto **5433** para evitar conflicto con Postgres local en Windows):
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d postgres
 ```
+
+> Si ya tenías el contenedor en el puerto 5432, recrea el servicio:
+> `docker compose -f docker/docker-compose.yml up -d postgres --force-recreate`
 
 **Backend:**
 
