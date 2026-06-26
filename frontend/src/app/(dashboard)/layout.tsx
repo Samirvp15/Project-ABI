@@ -3,7 +3,7 @@
 import { BarChart3, Database, LayoutDashboard, MessageSquare, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -18,19 +18,54 @@ const navItems = [
   { href: "#", label: "AI Chat", icon: MessageSquare, disabled: true },
 ];
 
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              <span className="text-lg font-bold">ABI</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-7xl p-6">{children}</main>
+    </div>
+  );
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isAuthenticated()) {
       router.replace("/login");
     }
-  }, [router]);
+  }, [mounted, router]);
+
+  if (!mounted) {
+    return (
+      <DashboardShell>
+        <p className="text-muted-foreground">Cargando...</p>
+      </DashboardShell>
+    );
+  }
 
   if (!isAuthenticated()) {
-    return null;
+    return (
+      <DashboardShell>
+        <p className="text-muted-foreground">Redirigiendo...</p>
+      </DashboardShell>
+    );
   }
 
   return (

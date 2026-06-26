@@ -99,6 +99,13 @@ npm run dev
 - [x] `GET /analytics/{dataset_id}` + `POST /analytics/{id}/refresh`
 - [x] UI: `/analytics` + `/analytics/[id]` con cards de métricas
 
+## Sprint 3 — Completado
+
+- [x] Motor de recomendación de gráficos (KPI, línea, barra, pie)
+- [x] `GET /dashboard/{dataset_id}` con datos pre-agregados
+- [x] Filtro por rango de fechas (`date_from`, `date_to`)
+- [x] UI: `/dashboard/[id]` con Recharts + filtro de fechas
+
 ## API Endpoints
 
 | Método | Endpoint | Descripción |
@@ -115,7 +122,8 @@ npm run dev
 | DELETE | `/api/v1/datasets/{id}` | Soft delete |
 | GET | `/api/v1/analytics/{id}` | Perfil analítico (KPIs) |
 | POST | `/api/v1/analytics/{id}/refresh` | Recalcular analytics |
+| GET | `/api/v1/dashboard/{id}` | Dashboard auto-generado (widgets + datos) |
 
 ## Próximo paso
 
-**Sprint 3:** Dashboard con gráficos auto-generados (`GET /dashboard/{dataset_id}`).
+**Sprint 4:** AI Chat con consultas en lenguaje natural (`POST /ai/chat`).

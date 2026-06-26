@@ -31,8 +31,8 @@ const features = [
     title: "Dashboard",
     description: "Gráficos auto-generados y KPI cards.",
     icon: Database,
-    status: "Sprint 3",
-    href: null,
+    status: "Activo",
+    href: "/datasets",
   },
   {
     title: "AI Chat",
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Sprint 2 activo — analytics automático disponible.
+            Sprint 3 activo — dashboards con gráficos auto-generados.
           </p>
         </div>
         <Link href="/datasets" className={buttonVariants()}>
