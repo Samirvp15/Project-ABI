@@ -124,6 +124,7 @@ npm run dev
 | GET | `/api/v1/analytics/{id}` | Perfil analítico (KPIs) |
 | POST | `/api/v1/analytics/{id}/refresh` | Recalcular analytics |
 | GET | `/api/v1/dashboard/{id}` | Dashboard auto-generado (widgets + datos) |
+| POST | `/api/v1/dashboard/{id}/chart` | Gráfico dinámico (tipo, columnas, agregación) |
 
 ## Próximo paso
 

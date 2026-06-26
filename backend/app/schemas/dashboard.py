@@ -19,6 +19,15 @@ class DashboardWidget(BaseModel):
     data: list[dict] | dict
 
 
+class ChartBuildRequest(BaseModel):
+    chart_type: str
+    x_column: str | None = None
+    y_column: str | None = None
+    aggregation: str = "sum"
+    date_from: str | None = None
+    date_to: str | None = None
+
+
 class DashboardResponse(BaseModel):
     dataset_id: str
     dataset_name: str

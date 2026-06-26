@@ -1,5 +1,5 @@
 import { getAccessToken } from "@/lib/auth";
-import type { DashboardFilters, DashboardProfile } from "@/types/dashboard";
+import type { ChartBuildRequest, DashboardFilters, DashboardProfile, DashboardWidget } from "@/types/dashboard";
 import type { ApiResponse } from "@/types/dataset";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -30,4 +30,20 @@ export async function fetchDashboard(
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   return handleResponse<DashboardProfile>(response);
+}
+
+export async function buildCustomChart(
+  datasetId: string,
+  request: ChartBuildRequest,
+): Promise<DashboardWidget> {
+  const token = getAccessToken();
+  const response = await fetch(`${API_URL}/dashboard/${datasetId}/chart`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(request),
+  });
+  return handleResponse<DashboardWidget>(response);
 }

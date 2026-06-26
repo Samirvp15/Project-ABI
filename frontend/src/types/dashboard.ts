@@ -38,3 +38,12 @@ export interface DashboardFilters {
   date_from?: string;
   date_to?: string;
 }
+
+export interface ChartBuildRequest {
+  chart_type: WidgetType;
+  x_column?: string;
+  y_column?: string;
+  aggregation?: "sum" | "avg" | "count";
+  date_from?: string;
+  date_to?: string;
+}

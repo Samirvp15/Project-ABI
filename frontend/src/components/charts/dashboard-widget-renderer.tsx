@@ -51,7 +51,7 @@ const DonutChartWidget = dynamic(
 
 function ChartPlaceholder() {
   return (
-    <Card className="flex h-full min-h-[300px] flex-col">
+    <Card className="flex h-full min-h-[340px] flex-col">
       <CardHeader>
         <div className="h-5 w-40 animate-pulse rounded bg-muted" />
       </CardHeader>

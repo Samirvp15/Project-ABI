@@ -3,11 +3,11 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data_engine.dashboard_engine import build_dashboard
+from app.data_engine.dashboard_engine import build_custom_chart, build_dashboard
 from app.models.user import User
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.repositories.dataset_repository import DatasetRepository
-from app.schemas.dashboard import DashboardResponse, DashboardSummary, DashboardWidget, DateRange
+from app.schemas.dashboard import ChartBuildRequest, DashboardResponse, DashboardSummary, DashboardWidget, DateRange
 
 
 class DashboardService:
@@ -23,30 +23,7 @@ class DashboardService:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> DashboardResponse:
-        dataset = await self.dataset_repo.get_by_id(dataset_id, user.id)
-        if not dataset:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"code": "DATASET_NOT_FOUND", "message": "Dataset not found"},
-            )
-        if dataset.status != "ready":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "code": "DATASET_NOT_READY",
-                    "message": "Dataset is not ready for dashboard",
-                },
-            )
-
-        columns_meta = [
-            {
-                "name": col.name,
-                "inferred_type": col.inferred_type,
-                "null_count": col.null_count,
-            }
-            for col in sorted(dataset.columns, key=lambda c: c.position)
-        ]
-        rows = await self.analytics_repo.get_all_rows(dataset_id)
+        dataset, columns_meta, rows = await self._load_dataset_context(user, dataset_id)
         payload = build_dashboard(columns_meta, rows, date_from, date_to)
 
         date_range = None
@@ -61,3 +38,51 @@ class DashboardService:
             summary=DashboardSummary(**payload["summary"]),
             widgets=[DashboardWidget(**widget) for widget in payload["widgets"]],
         )
+
+    async def _load_dataset_context(self, user: User, dataset_id: uuid.UUID):
+        dataset = await self.dataset_repo.get_by_id(dataset_id, user.id)
+        if not dataset:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DATASET_NOT_FOUND", "message": "Dataset not found"},
+            )
+        if dataset.status != "ready":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "DATASET_NOT_READY",
+                    "message": "Dataset is not ready for dashboard",
+                },
+            )
+        columns_meta = [
+            {
+                "name": col.name,
+                "inferred_type": col.inferred_type,
+                "null_count": col.null_count,
+            }
+            for col in sorted(dataset.columns, key=lambda c: c.position)
+        ]
+        rows = await self.analytics_repo.get_all_rows(dataset_id)
+        return dataset, columns_meta, rows
+
+    async def build_chart(
+        self, user: User, dataset_id: uuid.UUID, request: ChartBuildRequest
+    ) -> DashboardWidget:
+        _, columns_meta, rows = await self._load_dataset_context(user, dataset_id)
+        try:
+            widget = build_custom_chart(
+                columns_meta,
+                rows,
+                chart_type=request.chart_type,
+                x_column=request.x_column,
+                y_column=request.y_column,
+                aggregation=request.aggregation,
+                date_from=request.date_from,
+                date_to=request.date_to,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "INVALID_CHART_CONFIG", "message": str(exc)},
+            ) from exc
+        return DashboardWidget(**widget)

@@ -1,4 +1,4 @@
-from app.data_engine.dashboard_engine import build_dashboard
+from app.data_engine.dashboard_engine import build_custom_chart, build_dashboard
 
 
 def _sales_columns():
@@ -55,6 +55,32 @@ def test_date_filter_reduces_rows():
     assert result["summary"]["filtered_row_count"] == 2
     kpi = next(w for w in result["widgets"] if w["type"] == "kpi" and w["config"].get("aggregation") == "sum")
     assert kpi["data"]["value"] == 230
+
+
+def test_build_custom_chart_bar():
+    result = build_custom_chart(
+        _sales_columns(),
+        _sales_rows(),
+        chart_type="bar",
+        x_column="region",
+        y_column="ventas",
+        aggregation="sum",
+    )
+    assert result["type"] == "bar"
+    assert len(result["data"]) >= 2
+
+
+def test_build_custom_chart_pie():
+    result = build_custom_chart(
+        _sales_columns(),
+        _sales_rows(),
+        chart_type="pie",
+        x_column="producto",
+        y_column="ventas",
+        aggregation="sum",
+    )
+    assert result["type"] == "pie"
+    assert all("name" in item and "value" in item for item in result["data"])
 
 
 def test_empty_dataset_returns_no_widgets():

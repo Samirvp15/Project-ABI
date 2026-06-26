@@ -371,3 +371,168 @@ def build_dashboard(
             "filtered_row_count": len(filtered),
         },
     }
+
+
+ALLOWED_CHART_TYPES = {
+    "kpi",
+    "line",
+    "area",
+    "bar",
+    "horizontal_bar",
+    "histogram",
+    "scatter",
+    "pie",
+    "donut",
+}
+
+
+def _column_types(columns_meta: list[dict[str, Any]]) -> dict[str, str]:
+    return {col["name"]: col.get("inferred_type", "text") for col in columns_meta}
+
+
+def _resolve_date_filter_column(
+    columns_meta: list[dict[str, Any]],
+    x_column: str | None,
+    by_type: dict[str, list[str]],
+) -> str | None:
+    types = _column_types(columns_meta)
+    if x_column and types.get(x_column) == "date":
+        return x_column
+    return by_type["date"][0] if by_type["date"] else None
+
+
+def build_custom_chart(
+    columns_meta: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    chart_type: str,
+    x_column: str | None = None,
+    y_column: str | None = None,
+    aggregation: str = "sum",
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any]:
+    if chart_type not in ALLOWED_CHART_TYPES:
+        raise ValueError(f"Tipo de gráfico no soportado: {chart_type}")
+
+    if not columns_meta:
+        raise ValueError("El dataset no tiene columnas")
+
+    df = pd.DataFrame(rows) if rows else pd.DataFrame(columns=[c["name"] for c in columns_meta])
+    by_type = _columns_by_type(columns_meta)
+    types = _column_types(columns_meta)
+    date_filter_col = _resolve_date_filter_column(columns_meta, x_column, by_type)
+    filtered = _filter_rows(df, date_filter_col, date_from, date_to)
+
+    agg = aggregation if aggregation in {"sum", "avg", "count"} else "sum"
+    widget: dict[str, Any] | None = None
+
+    if chart_type == "kpi":
+        if not y_column or types.get(y_column) != "numeric":
+            raise ValueError("KPI requiere una columna numérica (Y)")
+        value = _aggregate_series(filtered[y_column], agg if agg != "count" else "sum")
+        widget = {
+            "id": f"custom-kpi-{y_column}-{agg}",
+            "type": "kpi",
+            "title": f"{'Promedio' if agg == 'avg' else 'Total'} {y_column}",
+            "config": {"column": y_column, "aggregation": agg, "x_column": x_column, "y_column": y_column},
+            "data": {"value": round(value, 2), "label": y_column},
+        }
+
+    elif chart_type in {"line", "area"}:
+        if not x_column or types.get(x_column) != "date":
+            raise ValueError("Línea/área requiere columna X de tipo fecha")
+        if not y_column or types.get(y_column) != "numeric":
+            raise ValueError("Línea/área requiere columna Y numérica")
+        line_agg = "avg" if chart_type == "area" or agg == "avg" else "sum"
+        points = _line_data(filtered, x_column, y_column, line_agg)
+        if not points:
+            raise ValueError("No hay datos suficientes para el gráfico temporal")
+        widget = {
+            "id": f"custom-{chart_type}-{x_column}-{y_column}",
+            "type": chart_type,
+            "title": f"{y_column} por {x_column} ({line_agg})",
+            "config": {
+                "x_column": x_column,
+                "y_column": y_column,
+                "aggregation": line_agg,
+            },
+            "data": points,
+        }
+
+    elif chart_type in {"bar", "horizontal_bar"}:
+        if not x_column or x_column not in filtered.columns:
+            raise ValueError("Barras requiere columna X (categoría o fecha)")
+        value_col = y_column if y_column and types.get(y_column) == "numeric" else None
+        bar_agg = agg if value_col else "count"
+        limit = 10 if chart_type == "horizontal_bar" else MAX_BAR_CATEGORIES
+        points = _group_aggregate(filtered, x_column, value_col, bar_agg, limit)
+        if not points:
+            raise ValueError("No hay datos suficientes para el gráfico de barras")
+        label = f"{value_col or 'conteo'} por {x_column}"
+        widget = {
+            "id": f"custom-{chart_type}-{x_column}-{value_col or 'count'}",
+            "type": chart_type,
+            "title": label if chart_type == "bar" else f"Top 10 — {label}",
+            "config": {
+                "x_column": x_column,
+                "y_column": value_col,
+                "aggregation": bar_agg,
+            },
+            "data": points,
+        }
+
+    elif chart_type in {"pie", "donut"}:
+        if not x_column or x_column not in filtered.columns:
+            raise ValueError("Pastel/dona requiere columna X (categoría)")
+        value_col = y_column if y_column and types.get(y_column) == "numeric" else None
+        pie_agg = agg if value_col else "count"
+        points = _pie_data(filtered, x_column, value_col, pie_agg)
+        if not points:
+            raise ValueError("No hay datos suficientes para el gráfico circular")
+        widget = {
+            "id": f"custom-{chart_type}-{x_column}-{value_col or 'count'}",
+            "type": chart_type,
+            "title": f"Participación por {x_column}",
+            "config": {
+                "label_column": x_column,
+                "value_column": value_col,
+                "aggregation": pie_agg,
+            },
+            "data": points,
+        }
+
+    elif chart_type == "histogram":
+        col = x_column or y_column
+        if not col or types.get(col) != "numeric":
+            raise ValueError("Histograma requiere columna numérica")
+        points = _histogram_data(filtered, col)
+        if not points:
+            raise ValueError("No hay datos suficientes para el histograma")
+        widget = {
+            "id": f"custom-histogram-{col}",
+            "type": "histogram",
+            "title": f"Distribución de {col}",
+            "config": {"column": col, "x_column": col},
+            "data": points,
+        }
+
+    elif chart_type == "scatter":
+        if not x_column or types.get(x_column) != "numeric":
+            raise ValueError("Scatter requiere columna X numérica")
+        if not y_column or types.get(y_column) != "numeric":
+            raise ValueError("Scatter requiere columna Y numérica")
+        points = _scatter_data(filtered, x_column, y_column)
+        if not points:
+            raise ValueError("No hay datos suficientes para el scatter")
+        widget = {
+            "id": f"custom-scatter-{x_column}-{y_column}",
+            "type": "scatter",
+            "title": f"{y_column} vs {x_column}",
+            "config": {"x_column": x_column, "y_column": y_column},
+            "data": points,
+        }
+
+    if not widget:
+        raise ValueError("No se pudo generar el gráfico")
+
+    return widget

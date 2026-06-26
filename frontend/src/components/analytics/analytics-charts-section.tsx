@@ -1,153 +1,140 @@
 "use client";
 
-import { BarChart3 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { BarChart3, X } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import {
-  CHARTS_GRID_CLASS,
-  ChartGridItem,
-  KPI_GRID_CLASS,
-} from "@/components/charts/chart-grid-layout";
-import {
-  DashboardWidgetRenderer,
-  groupChartWidgets,
-} from "@/components/charts/dashboard-widget-renderer";
-import { DateRangeFilter } from "@/components/dashboard/date-range-filter";
+  ChartBuilderPanel,
+  ChartSuggestionChip,
+} from "@/components/analytics/chart-builder-panel";
+import { CHARTS_GRID_CLASS } from "@/components/charts/chart-grid-layout";
+import { DashboardWidgetRenderer } from "@/components/charts/dashboard-widget-renderer";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useDashboard } from "@/hooks/use-dashboard";
-import type { DashboardFilters } from "@/types/dashboard";
+import { useBuildChart, useDashboard } from "@/hooks/use-dashboard";
+import { useDataset } from "@/hooks/use-datasets";
+import type { ChartBuildRequest, DashboardWidget } from "@/types/dashboard";
+
+interface ActiveChart {
+  key: string;
+  widget: DashboardWidget;
+}
 
 interface AnalyticsChartsSectionProps {
   datasetId: string;
 }
 
 export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProps) {
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>({});
+  const { data: dataset } = useDataset(datasetId);
+  const { data: dashboardMeta } = useDashboard(datasetId);
+  const buildChart = useBuildChart(datasetId);
+  const [activeCharts, setActiveCharts] = useState<ActiveChart[]>([]);
+  const [builderError, setBuilderError] = useState<string | null>(null);
 
-  const { data: dashboard, isLoading, error } = useDashboard(datasetId, appliedFilters);
+  const addChart = useCallback((widget: DashboardWidget) => {
+    setActiveCharts((prev) => [
+      ...prev,
+      { key: `${widget.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, widget },
+    ]);
+  }, []);
 
-  const { kpiWidgets, chartGroups, otherCharts } = useMemo(() => {
-    const widgets = dashboard?.widgets ?? [];
-    const kpis = widgets.filter((w) => w.type === "kpi");
-    const charts = widgets.filter((w) => w.type !== "kpi");
-    const { groups, other } = groupChartWidgets(charts);
-    return { kpiWidgets: kpis, chartGroups: groups, otherCharts: other };
-  }, [dashboard?.widgets]);
+  const handleGenerate = async (request: ChartBuildRequest) => {
+    setBuilderError(null);
+    try {
+      const widget = await buildChart.mutateAsync(request);
+      addChart(widget);
+    } catch (err) {
+      setBuilderError(err instanceof Error ? err.message : "Error al generar gráfico");
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <section className="space-y-4">
-        <SectionHeader />
-        <p className="text-sm text-muted-foreground">Generando gráficos...</p>
-      </section>
-    );
-  }
+  const handleSuggestion = (widget: DashboardWidget) => {
+    addChart({ ...widget, id: `${widget.id}-suggest-${Date.now()}` });
+  };
 
-  if (error || !dashboard) {
-    return (
-      <section className="space-y-4">
-        <SectionHeader />
-        <p className="text-sm text-destructive">No se pudieron cargar los gráficos</p>
-      </section>
-    );
-  }
-
-  const hasCharts = kpiWidgets.length > 0 || chartGroups.length > 0 || otherCharts.length > 0;
+  const suggestions = (dashboardMeta?.widgets ?? [])
+    .filter((w) => w.type !== "kpi")
+    .slice(0, 8);
 
   return (
     <section className="space-y-6">
       <SectionHeader
         subtitle={
-          dashboard.summary.filtered_row_count !== dashboard.summary.row_count
-            ? `${dashboard.summary.filtered_row_count.toLocaleString()} de ${dashboard.summary.row_count.toLocaleString()} filas (filtradas)`
-            : `${dashboard.summary.row_count.toLocaleString()} filas · ${dashboard.widgets.length} visualizaciones`
+          dashboardMeta
+            ? `${dashboardMeta.summary.row_count.toLocaleString()} filas · ${activeCharts.length} gráfico(s) activo(s)`
+            : "Configura y genera gráficos según las columnas que elijas"
         }
       />
 
-      <DateRangeFilter
-        dateRange={dashboard.date_range}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
-        onApply={() =>
-          setAppliedFilters({
-            date_from: dateFrom || undefined,
-            date_to: dateTo || undefined,
-          })
-        }
-        onClear={() => {
-          setDateFrom("");
-          setDateTo("");
-          setAppliedFilters({});
-        }}
-      />
+      {dataset?.columns && (
+        <ChartBuilderPanel
+          columns={dataset.columns}
+          dateRange={dashboardMeta?.date_range ?? null}
+          onGenerate={handleGenerate}
+          isLoading={buildChart.isPending}
+          error={builderError}
+        />
+      )}
 
-      {!hasCharts ? (
+      {suggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Sugerencias rápidas</p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((widget) => (
+              <ChartSuggestionChip
+                key={widget.id}
+                label={widget.title}
+                onClick={() => handleSuggestion(widget)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeCharts.length > 0 ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
+              Gráficos generados ({activeCharts.length})
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setActiveCharts([])}>
+              Limpiar todos
+            </Button>
+          </div>
+          <div className={CHARTS_GRID_CLASS}>
+            {activeCharts.map(({ key, widget }) => (
+              <div key={key} className="relative min-h-[340px]">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 z-10 h-7 w-7 bg-background/80 backdrop-blur-sm"
+                  onClick={() => setActiveCharts((prev) => prev.filter((c) => c.key !== key))}
+                  aria-label="Quitar gráfico"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <DashboardWidgetRenderer widget={widget} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Sin gráficos disponibles</CardTitle>
+            <CardTitle className="text-base">Sin gráficos aún</CardTitle>
             <CardDescription>
-              Este dataset necesita columnas numéricas, de fecha o categóricas para generar
-              visualizaciones automáticas.
+              Usa el explorador arriba para elegir columnas y tipo de gráfico, o haz clic en una
+              sugerencia rápida.
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : (
-        <div className={CHARTS_GRID_CLASS}>
-          {kpiWidgets.length > 0 && (
-            <>
-              <GridSectionTitle>Indicadores clave (KPIs)</GridSectionTitle>
-              <div className={`col-span-full ${KPI_GRID_CLASS}`}>
-                {kpiWidgets.map((widget) => (
-                  <DashboardWidgetRenderer key={widget.id} widget={widget} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {chartGroups.map((group) => (
-            <ChartGroupBlock key={group.key} title={group.title} widgets={group.widgets} />
-          ))}
-
-          {otherCharts.length > 0 && (
-            <ChartGroupBlock title="Otros gráficos" widgets={otherCharts} />
-          )}
-        </div>
       )}
     </section>
-  );
-}
-
-function GridSectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="col-span-full pt-2 text-sm font-medium text-muted-foreground">{children}</h3>
-  );
-}
-
-function ChartGroupBlock({
-  title,
-  widgets,
-}: {
-  title: string;
-  widgets: Parameters<typeof DashboardWidgetRenderer>[0]["widget"][];
-}) {
-  return (
-    <>
-      <GridSectionTitle>{title}</GridSectionTitle>
-      {widgets.map((widget) => (
-        <ChartGridItem key={widget.id} widget={widget}>
-          <DashboardWidgetRenderer widget={widget} />
-        </ChartGridItem>
-      ))}
-    </>
   );
 }
 
@@ -160,8 +147,7 @@ function SectionHeader({ subtitle }: { subtitle?: string }) {
       <div>
         <h2 className="text-xl font-semibold">Análisis gráfico</h2>
         <p className="text-sm text-muted-foreground">
-          {subtitle ??
-            "KPIs, histogramas, barras, líneas, áreas, scatter y gráficos de pastel/dona"}
+          {subtitle ?? "Gráficos dinámicos según columnas, agregación y rango de fechas"}
         </p>
       </div>
     </div>
