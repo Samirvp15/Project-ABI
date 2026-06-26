@@ -117,6 +117,10 @@ class DatasetService:
             if not dataset:
                 raise HTTPException(status_code=500, detail="Dataset not found after upload")
 
+            from app.services.analytics_service import AnalyticsService
+
+            await AnalyticsService(self.repo.db).compute_after_upload(user.id, dataset.id)
+
             return self._to_response(dataset)
 
         except ValueError as exc:

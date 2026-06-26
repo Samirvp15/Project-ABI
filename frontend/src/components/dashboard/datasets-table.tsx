@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, BarChart3, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,14 @@ function DatasetRow({ dataset }: { dataset: DatasetListItem }) {
       </TableCell>
       <TableCell>
         <div className="flex gap-1">
+          {dataset.status === "ready" && (
+            <Link
+              href={`/analytics/${dataset.id}`}
+              className={buttonVariants({ variant: "ghost", size: "icon" })}
+            >
+              <BarChart3 className="h-4 w-4" />
+            </Link>
+          )}
           <Link
             href={`/datasets/${dataset.id}`}
             className={buttonVariants({ variant: "ghost", size: "icon" })}

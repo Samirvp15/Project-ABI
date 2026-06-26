@@ -92,6 +92,13 @@ npm run dev
 - [x] `DELETE /datasets/{id}` (soft delete)
 - [x] UI: drag & drop upload + tabla de datasets + detalle con preview
 
+## Sprint 2 — Completado
+
+- [x] Motor de analytics (sum, avg, min, max, std_dev, top categorías)
+- [x] Tabla `analytics_cache` + cálculo automático al subir
+- [x] `GET /analytics/{dataset_id}` + `POST /analytics/{id}/refresh`
+- [x] UI: `/analytics` + `/analytics/[id]` con cards de métricas
+
 ## API Endpoints
 
 | Método | Endpoint | Descripción |
@@ -106,7 +113,9 @@ npm run dev
 | GET | `/api/v1/datasets/{id}` | Detalle + schema |
 | GET | `/api/v1/datasets/{id}/preview` | Primeras 100 filas |
 | DELETE | `/api/v1/datasets/{id}` | Soft delete |
+| GET | `/api/v1/analytics/{id}` | Perfil analítico (KPIs) |
+| POST | `/api/v1/analytics/{id}/refresh` | Recalcular analytics |
 
 ## Próximo paso
 
-**Sprint 2:** Analytics automático (`GET /analytics/{dataset_id}`).
+**Sprint 3:** Dashboard con gráficos auto-generados (`GET /dashboard/{dataset_id}`).

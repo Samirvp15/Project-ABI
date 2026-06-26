@@ -24,8 +24,8 @@ const features = [
     title: "Analytics",
     description: "Métricas automáticas: sum, avg, min, max.",
     icon: BarChart3,
-    status: "Sprint 2",
-    href: null,
+    status: "Activo",
+    href: "/analytics",
   },
   {
     title: "Dashboard",
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Sprint 1 activo — sube tus datos para comenzar el análisis.
+            Sprint 2 activo — analytics automático disponible.
           </p>
         </div>
         <Link href="/datasets" className={buttonVariants()}>

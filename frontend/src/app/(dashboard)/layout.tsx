@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/datasets", label: "Datasets", icon: Upload },
-  { href: "#", label: "Analytics", icon: BarChart3, disabled: true },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, disabled: false },
   { href: "#", label: "AI Chat", icon: MessageSquare, disabled: true },
 ];
 
@@ -54,7 +54,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     href={item.href}
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "sm" }),
-                      pathname === item.href && "bg-muted",
+                      (pathname === item.href || pathname.startsWith(`${item.href}/`)) &&
+                        "bg-muted",
                     )}
                   >
                     <item.icon className="mr-1.5 h-4 w-4" />
