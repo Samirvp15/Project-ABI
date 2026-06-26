@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/card";
 import type { DashboardWidget } from "@/types/dashboard";
 
-interface BarChartWidgetProps {
+interface HorizontalBarChartWidgetProps {
   widget: DashboardWidget;
 }
 
-export function BarChartWidget({ widget }: BarChartWidgetProps) {
+export function HorizontalBarChartWidget({ widget }: HorizontalBarChartWidgetProps) {
   const data = (widget.data as Array<{ x: string; y: number }>) ?? [];
 
   return (
@@ -31,14 +31,23 @@ export function BarChartWidget({ widget }: BarChartWidgetProps) {
       <CardHeader>
         <CardTitle className="text-base">{widget.title}</CardTitle>
       </CardHeader>
-      <CardContent className="h-64 flex-1 min-h-0">
+      <CardContent className="h-72 flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="x" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={60} />
-            <YAxis tick={{ fontSize: 12 }} width={56} />
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 12 }} />
+            <YAxis
+              type="category"
+              dataKey="x"
+              tick={{ fontSize: 11 }}
+              width={100}
+            />
             <Tooltip />
-            <Bar dataKey="y" fill={FALLBACK_CHART_COLORS[1]} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="y" fill={FALLBACK_CHART_COLORS[4]} radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

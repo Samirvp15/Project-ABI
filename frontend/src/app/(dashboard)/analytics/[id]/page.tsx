@@ -2,10 +2,11 @@
 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, Columns3, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
+import { AnalyticsChartsSection } from "@/components/analytics/analytics-charts-section";
 import { ColumnMetricsCard } from "@/components/analytics/column-metrics-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ export default function AnalyticsDetailPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/analytics" className={buttonVariants({ variant: "ghost", size: "icon" })}>
@@ -77,14 +78,28 @@ export default function AnalyticsDetailPage({
         </Card>
       </div>
 
-      <div>
-        <h2 className="mb-4 text-xl font-semibold">Métricas por columna</h2>
+      <div className="rounded-xl border bg-card p-6">
+        <AnalyticsChartsSection datasetId={id} />
+      </div>
+
+      <section className="space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-muted p-2">
+            <Columns3 className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold">Análisis por columnas</h2>
+            <p className="text-sm text-muted-foreground">
+              Métricas detalladas por tipo: numérico, fecha, categórico y texto
+            </p>
+          </div>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {analytics.columns.map((column) => (
             <ColumnMetricsCard key={column.name} column={column} />
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

@@ -27,8 +27,21 @@ def test_build_dashboard_includes_kpi_line_bar_pie():
     assert "line" in types
     assert "bar" in types
     assert "pie" in types
+    assert "histogram" in types
+    assert "horizontal_bar" in types
     assert result["date_column"] == "fecha"
     assert result["summary"]["row_count"] == 4
+    assert len(result["widgets"]) >= 8
+
+
+def test_build_dashboard_with_two_numeric_includes_scatter():
+    columns = _sales_columns() + [{"name": "cantidad", "inferred_type": "numeric", "null_count": 0}]
+    rows = [{**row, "cantidad": 10 * (i + 1)} for i, row in enumerate(_sales_rows())]
+    result = build_dashboard(columns, rows)
+
+    types = {w["type"] for w in result["widgets"]}
+    assert "scatter" in types
+    assert "area" in types
 
 
 def test_date_filter_reduces_rows():
@@ -40,7 +53,7 @@ def test_date_filter_reduces_rows():
     )
 
     assert result["summary"]["filtered_row_count"] == 2
-    kpi = next(w for w in result["widgets"] if w["type"] == "kpi")
+    kpi = next(w for w in result["widgets"] if w["type"] == "kpi" and w["config"].get("aggregation") == "sum")
     assert kpi["data"]["value"] == 230
 
 

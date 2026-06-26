@@ -15,7 +15,7 @@ export function KpiWidget({ widget }: KpiWidgetProps) {
   const value = typeof data.value === "number" ? data.value : 0;
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="pb-2">
         <CardDescription>{widget.title}</CardDescription>
         <CardTitle className="text-3xl tabular-nums">

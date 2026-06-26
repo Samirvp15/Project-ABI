@@ -17,11 +17,11 @@ import {
 } from "@/components/ui/card";
 import type { DashboardWidget } from "@/types/dashboard";
 
-interface PieChartWidgetProps {
+interface DonutChartWidgetProps {
   widget: DashboardWidget;
 }
 
-export function PieChartWidget({ widget }: PieChartWidgetProps) {
+export function DonutChartWidget({ widget }: DonutChartWidgetProps) {
   const data = (widget.data as Array<{ name: string; value: number }>) ?? [];
 
   return (
@@ -38,7 +38,8 @@ export function PieChartWidget({ widget }: PieChartWidgetProps) {
               nameKey="name"
               cx="50%"
               cy="50%"
-              outerRadius={100}
+              innerRadius={55}
+              outerRadius={95}
               label={({ name, percent }) =>
                 `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
               }

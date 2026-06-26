@@ -1,4 +1,13 @@
-export type WidgetType = "kpi" | "line" | "bar" | "pie";
+export type WidgetType =
+  | "kpi"
+  | "line"
+  | "area"
+  | "bar"
+  | "horizontal_bar"
+  | "histogram"
+  | "scatter"
+  | "pie"
+  | "donut";
 
 export interface DashboardWidget {
   id: string;

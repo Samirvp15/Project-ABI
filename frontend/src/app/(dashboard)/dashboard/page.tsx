@@ -22,17 +22,17 @@ const features = [
   },
   {
     title: "Analytics",
-    description: "Métricas automáticas: sum, avg, min, max.",
+    description: "Métricas, gráficos de barras, líneas y pastel.",
     icon: BarChart3,
     status: "Activo",
     href: "/analytics",
   },
   {
     title: "Dashboard",
-    description: "Gráficos auto-generados y KPI cards.",
+    description: "Resumen general y datasets recientes.",
     icon: Database,
     status: "Activo",
-    href: "/datasets",
+    href: "/dashboard",
   },
   {
     title: "AI Chat",
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Sprint 3 activo — dashboards con gráficos auto-generados.
+            Analytics con gráficos integrados — barras, líneas y pastel.
           </p>
         </div>
         <Link href="/datasets" className={buttonVariants()}>

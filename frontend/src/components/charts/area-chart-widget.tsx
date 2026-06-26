@@ -1,9 +1,9 @@
 "use client";
 
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/card";
 import type { DashboardWidget } from "@/types/dashboard";
 
-interface LineChartWidgetProps {
+interface AreaChartWidgetProps {
   widget: DashboardWidget;
 }
 
-export function LineChartWidget({ widget }: LineChartWidgetProps) {
+export function AreaChartWidget({ widget }: AreaChartWidgetProps) {
   const data = (widget.data as Array<{ x: string; y: number }>) ?? [];
 
   return (
@@ -33,19 +33,20 @@ export function LineChartWidget({ widget }: LineChartWidgetProps) {
       </CardHeader>
       <CardContent className="h-64 flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="x" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 12 }} width={56} />
             <Tooltip />
-            <Line
+            <Area
               type="monotone"
               dataKey="y"
-              stroke={FALLBACK_CHART_COLORS[0]}
+              stroke={FALLBACK_CHART_COLORS[2]}
+              fill={FALLBACK_CHART_COLORS[2]}
+              fillOpacity={0.25}
               strokeWidth={2}
-              dot={false}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

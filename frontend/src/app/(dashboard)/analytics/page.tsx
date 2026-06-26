@@ -22,7 +22,7 @@ export default function AnalyticsListPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
         <p className="text-muted-foreground">
-          Métricas automáticas calculadas para cada dataset.
+          Métricas automáticas, gráficos y KPIs por dataset.
         </p>
       </div>
 
@@ -58,7 +58,7 @@ export default function AnalyticsListPage() {
                   className={cn(buttonVariants({ variant: "outline" }), "w-full")}
                 >
                   <BarChart3 className="mr-2 h-4 w-4" />
-                  Ver analytics
+                  Ver analytics y gráficos
                 </Link>
               </CardContent>
             </Card>

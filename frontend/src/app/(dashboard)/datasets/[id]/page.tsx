@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, BarChart3, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
@@ -62,16 +62,10 @@ export default function DatasetDetailPage({
           </div>
         </div>
         {dataset.status === "ready" && (
-          <div className="flex gap-2">
-            <Link href={`/dashboard/${id}`} className={buttonVariants()}>
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Ver dashboard
-            </Link>
-            <Link href={`/analytics/${id}`} className={buttonVariants({ variant: "outline" })}>
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Ver analytics
-            </Link>
-          </div>
+          <Link href={`/analytics/${id}`} className={buttonVariants()}>
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Ver analytics
+          </Link>
         )}
       </div>
 

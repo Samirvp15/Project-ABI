@@ -1,9 +1,9 @@
 "use client";
 
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/card";
 import type { DashboardWidget } from "@/types/dashboard";
 
-interface LineChartWidgetProps {
+interface HistogramChartWidgetProps {
   widget: DashboardWidget;
 }
 
-export function LineChartWidget({ widget }: LineChartWidgetProps) {
+export function HistogramChartWidget({ widget }: HistogramChartWidgetProps) {
   const data = (widget.data as Array<{ x: string; y: number }>) ?? [];
 
   return (
@@ -33,19 +33,20 @@ export function LineChartWidget({ widget }: LineChartWidgetProps) {
       </CardHeader>
       <CardContent className="h-64 flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="x" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 12 }} width={56} />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="y"
-              stroke={FALLBACK_CHART_COLORS[0]}
-              strokeWidth={2}
-              dot={false}
+            <XAxis
+              dataKey="x"
+              tick={{ fontSize: 10 }}
+              interval={0}
+              angle={-25}
+              textAnchor="end"
+              height={70}
             />
-          </LineChart>
+            <YAxis tick={{ fontSize: 12 }} width={48} allowDecimals={false} />
+            <Tooltip />
+            <Bar dataKey="y" fill={FALLBACK_CHART_COLORS[3]} radius={[2, 2, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

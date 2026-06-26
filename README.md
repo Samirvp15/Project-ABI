@@ -101,10 +101,11 @@ npm run dev
 
 ## Sprint 3 — Completado
 
-- [x] Motor de recomendación de gráficos (KPI, línea, barra, pie)
+- [x] Motor de recomendación de gráficos ampliado (KPI, línea, área, barras, barras horizontales, histograma, scatter, pastel, dona)
 - [x] `GET /dashboard/{dataset_id}` con datos pre-agregados
 - [x] Filtro por rango de fechas (`date_from`, `date_to`)
-- [x] UI: `/dashboard/[id]` con Recharts + filtro de fechas
+- [x] UI: `/analytics/[id]` con gráficos (barras, línea, pastel) + métricas por columna
+- [x] Filtro por rango de fechas en sección gráfica
 
 ## API Endpoints
 

@@ -2,10 +2,13 @@ from typing import Any
 
 import pandas as pd
 
-MAX_KPIS = 4
+MAX_KPIS = 6
 MAX_BAR_CATEGORIES = 15
 MAX_PIE_SLICES = 8
 MAX_LINE_POINTS = 365
+MAX_HISTOGRAM_BINS = 12
+MAX_SCATTER_POINTS = 400
+MAX_CATEGORICAL_COLUMNS = 3
 
 
 def _columns_by_type(columns_meta: list[dict[str, Any]]) -> dict[str, list[str]]:
@@ -130,17 +133,59 @@ def _pie_data(
     return [{"name": item["x"], "value": item["y"]} for item in top]
 
 
-def _pick_categorical(columns: list[str], df: pd.DataFrame) -> str | None:
-    best: tuple[int, str] | None = None
+def _pick_categoricals(columns: list[str], df: pd.DataFrame, limit: int = MAX_CATEGORICAL_COLUMNS) -> list[str]:
+    candidates: list[tuple[int, str]] = []
     for col in columns:
         if col not in df.columns:
             continue
         unique = int(df[col].dropna().nunique())
-        if unique < 2 or unique > 50:
-            continue
-        if best is None or unique < best[0]:
-            best = (unique, col)
-    return best[1] if best else None
+        if 2 <= unique <= 50:
+            candidates.append((unique, col))
+    candidates.sort(key=lambda item: item[0])
+    return [col for _, col in candidates[:limit]]
+
+
+def _pick_categorical(columns: list[str], df: pd.DataFrame) -> str | None:
+    picked = _pick_categoricals(columns, df, limit=1)
+    return picked[0] if picked else None
+
+
+def _histogram_data(df: pd.DataFrame, col: str) -> list[dict[str, Any]]:
+    if col not in df.columns:
+        return []
+    series = pd.to_numeric(df[col], errors="coerce").dropna()
+    if len(series) < 3:
+        return []
+
+    unique_count = int(series.nunique())
+    bin_count = min(MAX_HISTOGRAM_BINS, max(5, unique_count // 2 or 5))
+    try:
+        buckets = pd.cut(series, bins=bin_count, duplicates="drop")
+    except ValueError:
+        return []
+
+    counts = buckets.value_counts().sort_index()
+    return [{"x": str(interval), "y": int(count)} for interval, count in counts.items()]
+
+
+def _scatter_data(df: pd.DataFrame, x_col: str, y_col: str) -> list[dict[str, Any]]:
+    if x_col not in df.columns or y_col not in df.columns:
+        return []
+
+    temp = df[[x_col, y_col]].copy()
+    temp["_x"] = pd.to_numeric(temp[x_col], errors="coerce")
+    temp["_y"] = pd.to_numeric(temp[y_col], errors="coerce")
+    temp = temp.dropna(subset=["_x", "_y"])
+    if len(temp) < 3:
+        return []
+
+    if len(temp) > MAX_SCATTER_POINTS:
+        temp = temp.sample(n=MAX_SCATTER_POINTS, random_state=42)
+
+    return [
+        {"x": round(float(row["_x"]), 2), "y": round(float(row["_y"]), 2)}
+        for _, row in temp.iterrows()
+    ]
 
 
 def build_dashboard(
@@ -167,20 +212,25 @@ def build_dashboard(
     filtered = _filter_rows(df, date_column, date_from, date_to)
     widgets: list[dict[str, Any]] = []
 
-    for idx, col in enumerate(numeric_cols[:MAX_KPIS]):
-        value = _aggregate_series(filtered[col], "sum") if col in filtered.columns else 0.0
-        widgets.append(
-            {
-                "id": f"kpi-{col}",
-                "type": "kpi",
-                "title": f"Total {col}",
-                "config": {"column": col, "aggregation": "sum"},
-                "data": {"value": round(value, 2), "label": col},
-            }
-        )
+    for col in numeric_cols[:3]:
+        if col not in filtered.columns:
+            continue
+        for agg, label in (("sum", "Total"), ("avg", "Promedio")):
+            value = _aggregate_series(filtered[col], agg)
+            widgets.append(
+                {
+                    "id": f"kpi-{col}-{agg}",
+                    "type": "kpi",
+                    "title": f"{label} {col}",
+                    "config": {"column": col, "aggregation": agg},
+                    "data": {"value": round(value, 2), "label": col},
+                }
+            )
 
     primary_numeric = numeric_cols[0] if numeric_cols else None
-    primary_categorical = _pick_categorical(categorical_cols, filtered)
+    secondary_numeric = numeric_cols[1] if len(numeric_cols) > 1 else None
+    categorical_list = _pick_categoricals(categorical_cols, filtered)
+    primary_categorical = categorical_list[0] if categorical_list else None
 
     if date_column and primary_numeric:
         line_points = _line_data(filtered, date_column, primary_numeric, "sum")
@@ -189,7 +239,7 @@ def build_dashboard(
                 {
                     "id": f"line-{date_column}-{primary_numeric}",
                     "type": "line",
-                    "title": f"{primary_numeric} en el tiempo",
+                    "title": f"{primary_numeric} en el tiempo (suma)",
                     "config": {
                         "x_column": date_column,
                         "y_column": primary_numeric,
@@ -199,39 +249,114 @@ def build_dashboard(
                 }
             )
 
-    if primary_categorical and primary_numeric:
-        bar_points = _group_aggregate(
-            filtered, primary_categorical, primary_numeric, "sum", MAX_BAR_CATEGORIES
-        )
-        if bar_points:
+        area_points = _line_data(filtered, date_column, primary_numeric, "avg")
+        if area_points:
             widgets.append(
                 {
-                    "id": f"bar-{primary_categorical}-{primary_numeric}",
-                    "type": "bar",
-                    "title": f"{primary_numeric} por {primary_categorical}",
+                    "id": f"area-{date_column}-{primary_numeric}",
+                    "type": "area",
+                    "title": f"Promedio de {primary_numeric} en el tiempo",
                     "config": {
-                        "x_column": primary_categorical,
+                        "x_column": date_column,
                         "y_column": primary_numeric,
-                        "aggregation": "sum",
+                        "aggregation": "avg",
+                    },
+                    "data": area_points,
+                }
+            )
+
+        if secondary_numeric:
+            line2 = _line_data(filtered, date_column, secondary_numeric, "sum")
+            if line2:
+                widgets.append(
+                    {
+                        "id": f"line-{date_column}-{secondary_numeric}",
+                        "type": "line",
+                        "title": f"{secondary_numeric} en el tiempo (suma)",
+                        "config": {
+                            "x_column": date_column,
+                            "y_column": secondary_numeric,
+                            "aggregation": "sum",
+                        },
+                        "data": line2,
+                    }
+                )
+
+    for col in numeric_cols[:2]:
+        hist_points = _histogram_data(filtered, col)
+        if hist_points:
+            widgets.append(
+                {
+                    "id": f"histogram-{col}",
+                    "type": "histogram",
+                    "title": f"Distribución de {col}",
+                    "config": {"column": col},
+                    "data": hist_points,
+                }
+            )
+
+    if primary_numeric and secondary_numeric:
+        scatter_points = _scatter_data(filtered, primary_numeric, secondary_numeric)
+        if scatter_points:
+            widgets.append(
+                {
+                    "id": f"scatter-{primary_numeric}-{secondary_numeric}",
+                    "type": "scatter",
+                    "title": f"{secondary_numeric} vs {primary_numeric}",
+                    "config": {"x_column": primary_numeric, "y_column": secondary_numeric},
+                    "data": scatter_points,
+                }
+            )
+
+    for cat_col in categorical_list:
+        value_col = primary_numeric
+        agg = "sum" if value_col else "count"
+        bar_points = _group_aggregate(filtered, cat_col, value_col, agg, MAX_BAR_CATEGORIES)
+        if bar_points:
+            suffix = f"{value_col} por {cat_col}" if value_col else f"Conteo por {cat_col}"
+            widgets.append(
+                {
+                    "id": f"bar-{cat_col}-{value_col or 'count'}",
+                    "type": "bar",
+                    "title": suffix,
+                    "config": {
+                        "x_column": cat_col,
+                        "y_column": value_col,
+                        "aggregation": agg,
                     },
                     "data": bar_points,
                 }
             )
 
-    pie_label = primary_categorical
-    if pie_label:
+            hbar_points = _group_aggregate(filtered, cat_col, value_col, agg, 10)
+            if hbar_points:
+                widgets.append(
+                    {
+                        "id": f"hbar-{cat_col}-{value_col or 'count'}",
+                        "type": "horizontal_bar",
+                        "title": f"Top 10 — {suffix}",
+                        "config": {
+                            "x_column": cat_col,
+                            "y_column": value_col,
+                            "aggregation": agg,
+                        },
+                        "data": hbar_points,
+                    }
+                )
+
         pie_col = primary_numeric if primary_numeric else None
-        pie_points = _pie_data(filtered, pie_label, pie_col, "sum")
+        pie_points = _pie_data(filtered, cat_col, pie_col, agg)
         if pie_points:
+            chart_type = "donut" if cat_col != primary_categorical else "pie"
             widgets.append(
                 {
-                    "id": f"pie-{pie_label}",
-                    "type": "pie",
-                    "title": f"Distribución por {pie_label}",
+                    "id": f"{chart_type}-{cat_col}",
+                    "type": chart_type,
+                    "title": f"Participación por {cat_col}",
                     "config": {
-                        "label_column": pie_label,
+                        "label_column": cat_col,
                         "value_column": pie_col,
-                        "aggregation": "count" if not pie_col else "sum",
+                        "aggregation": agg,
                     },
                     "data": pie_points,
                 }
