@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     cors_origins: str = "http://localhost:3000"
+    max_upload_size_mb: int = 50
 
     @property
     def cors_origins_list(self) -> list[str]:

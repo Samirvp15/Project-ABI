@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,8 +40,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
+    <AuthShell>
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Crear cuenta</CardTitle>
           <CardDescription>Regístrate para empezar a analizar tus datos</CardDescription>
@@ -98,6 +100,7 @@ export default function RegisterPage() {
           </CardFooter>
         </form>
       </Card>
-    </div>
+      </div>
+    </AuthShell>
   );
 }

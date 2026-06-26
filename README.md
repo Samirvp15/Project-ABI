@@ -83,7 +83,16 @@ npm run dev
 - [x] Docker Compose
 - [x] CI (GitHub Actions)
 
-## API Endpoints (Sprint 0)
+## Sprint 1 — Completado
+
+- [x] Migraciones `datasets`, `dataset_columns`, `dataset_rows`
+- [x] `POST /api/v1/datasets/upload` (CSV, Excel, JSON)
+- [x] Pipeline Pandas + inferencia de tipos
+- [x] `GET /datasets`, `GET /datasets/{id}`, `GET /datasets/{id}/preview`
+- [x] `DELETE /datasets/{id}` (soft delete)
+- [x] UI: drag & drop upload + tabla de datasets + detalle con preview
+
+## API Endpoints
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -92,11 +101,12 @@ npm run dev
 | POST | `/api/v1/auth/login` | Login → JWT |
 | POST | `/api/v1/auth/refresh` | Refresh token |
 | GET | `/api/v1/auth/me` | Usuario actual (requiere JWT) |
-
-## Documentación
-
-- [Especificación Técnica](./docs/TECHNICAL_SPECIFICATION.md)
+| POST | `/api/v1/datasets/upload` | Subir archivo (multipart) |
+| GET | `/api/v1/datasets` | Listar datasets del usuario |
+| GET | `/api/v1/datasets/{id}` | Detalle + schema |
+| GET | `/api/v1/datasets/{id}/preview` | Primeras 100 filas |
+| DELETE | `/api/v1/datasets/{id}` | Soft delete |
 
 ## Próximo paso
 
-**Sprint 1:** Upload de datasets (`POST /datasets/upload`) + tabla de datasets en UI.
+**Sprint 2:** Analytics automático (`GET /analytics/{dataset_id}`).
