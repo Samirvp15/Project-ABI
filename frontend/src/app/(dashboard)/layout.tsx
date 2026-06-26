@@ -3,12 +3,13 @@
 import { BarChart3, Database, LayoutDashboard, MessageSquare, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { isAuthenticated } from "@/lib/auth";
+import { useIsAuthenticated } from "@/hooks/use-is-authenticated";
+import { useIsClient } from "@/hooks/use-is-client";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -40,19 +41,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading, logout } = useAuth();
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
+  const isAuthed = useIsAuthenticated();
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !isAuthenticated()) {
+    if (isClient && !isAuthed) {
       router.replace("/login");
     }
-  }, [mounted, router]);
+  }, [isClient, isAuthed, router]);
 
-  if (!mounted) {
+  if (!isClient) {
     return (
       <DashboardShell>
         <p className="text-muted-foreground">Cargando...</p>
@@ -60,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!isAuthenticated()) {
+  if (!isAuthed) {
     return (
       <DashboardShell>
         <p className="text-muted-foreground">Redirigiendo...</p>

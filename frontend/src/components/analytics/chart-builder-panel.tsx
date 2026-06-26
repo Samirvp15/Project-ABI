@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter";
 import { Button } from "@/components/ui/button";
@@ -92,11 +92,15 @@ export function ChartBuilderPanel({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  useEffect(() => {
-    const next = defaultsForChart(chartType, grouped);
+  const handleChartTypeChange = (newType: WidgetType) => {
+    setChartType(newType);
+    const next = defaultsForChart(newType, grouped);
     setXColumn(next.x);
     setYColumn(next.y);
-  }, [chartType, grouped]);
+  };
+
+  const resolvedX = xColumn || defaultsForChart(chartType, grouped).x;
+  const resolvedY = yColumn || defaultsForChart(chartType, grouped).y;
 
   const needsX = chartType !== "kpi";
   const needsY = !["histogram"].includes(chartType);
@@ -112,8 +116,8 @@ export function ChartBuilderPanel({
   const handleSubmit = () => {
     onGenerate({
       chart_type: chartType,
-      x_column: xColumn || undefined,
-      y_column: yColumn || undefined,
+      x_column: resolvedX || undefined,
+      y_column: resolvedY || undefined,
       aggregation,
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
@@ -136,7 +140,7 @@ export function ChartBuilderPanel({
             id="chart-type"
             className={selectClass}
             value={chartType}
-            onChange={(e) => setChartType(e.target.value as WidgetType)}
+            onChange={(e) => handleChartTypeChange(e.target.value as WidgetType)}
           >
             {CHART_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -158,7 +162,7 @@ export function ChartBuilderPanel({
             <select
               id="x-column"
               className={selectClass}
-              value={xColumn}
+              value={resolvedX}
               onChange={(e) => setXColumn(e.target.value)}
             >
               <option value="">Seleccionar...</option>
@@ -179,7 +183,7 @@ export function ChartBuilderPanel({
             <select
               id="y-column"
               className={selectClass}
-              value={yColumn}
+              value={resolvedY}
               onChange={(e) => setYColumn(e.target.value)}
             >
               <option value="">

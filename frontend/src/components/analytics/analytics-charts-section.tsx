@@ -39,7 +39,7 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
   const addChart = useCallback((widget: DashboardWidget) => {
     setActiveCharts((prev) => [
       ...prev,
-      { key: `${widget.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, widget },
+      { key: `${widget.id}-${prev.length + 1}`, widget },
     ]);
   }, []);
 
@@ -54,7 +54,7 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
   };
 
   const handleSuggestion = (widget: DashboardWidget) => {
-    addChart({ ...widget, id: `${widget.id}-suggest-${Date.now()}` });
+    addChart(widget);
   };
 
   const suggestions = (dashboardMeta?.widgets ?? [])
