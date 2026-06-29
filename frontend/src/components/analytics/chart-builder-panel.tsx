@@ -86,21 +86,25 @@ export function ChartBuilderPanel({
 }: ChartBuilderPanelProps) {
   const grouped = useMemo(() => columnsByType(columns), [columns]);
   const [chartType, setChartType] = useState<WidgetType>("bar");
-  const [xColumn, setXColumn] = useState("");
-  const [yColumn, setYColumn] = useState("");
+  const [xColumn, setXColumn] = useState<string | null>(null);
+  const [yColumn, setYColumn] = useState<string | null>(null);
   const [aggregation, setAggregation] = useState<"sum" | "avg" | "count">("sum");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const defaultX = defaultsForChart(chartType, grouped).x;
+  const defaultY = defaultsForChart(chartType, grouped).y;
+  const supportsCountOnly = ["bar", "horizontal_bar", "pie", "donut"].includes(chartType);
+
   const handleChartTypeChange = (newType: WidgetType) => {
     setChartType(newType);
-    const next = defaultsForChart(newType, grouped);
-    setXColumn(next.x);
-    setYColumn(next.y);
+    setXColumn(null);
+    setYColumn(null);
   };
 
-  const resolvedX = xColumn || defaultsForChart(chartType, grouped).x;
-  const resolvedY = yColumn || defaultsForChart(chartType, grouped).y;
+  const resolvedX = xColumn ?? defaultX;
+  const resolvedY = yColumn ?? defaultY;
+  const ySelectValue = yColumn ?? defaultY ?? "";
 
   const needsX = chartType !== "kpi";
   const needsY = !["histogram"].includes(chartType);
@@ -162,7 +166,7 @@ export function ChartBuilderPanel({
             <select
               id="x-column"
               className={selectClass}
-              value={resolvedX}
+              value={xColumn ?? defaultX}
               onChange={(e) => setXColumn(e.target.value)}
             >
               <option value="">Seleccionar...</option>
@@ -183,14 +187,13 @@ export function ChartBuilderPanel({
             <select
               id="y-column"
               className={selectClass}
-              value={resolvedY}
+              value={ySelectValue}
               onChange={(e) => setYColumn(e.target.value)}
             >
-              <option value="">
-                {["bar", "horizontal_bar", "pie", "donut"].includes(chartType)
-                  ? "Conteo (sin columna Y)"
-                  : "Seleccionar..."}
-              </option>
+              {supportsCountOnly && (
+                <option value="">Conteo (sin columna Y)</option>
+              )}
+              {!supportsCountOnly && <option value="">Seleccionar...</option>}
               {yOptions.map((col) => (
                 <option key={col.name} value={col.name}>
                   {col.name} ({col.inferred_type})
