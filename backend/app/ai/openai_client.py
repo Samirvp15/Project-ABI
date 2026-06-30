@@ -5,10 +5,18 @@ from typing import Any
 
 from openai import OpenAI
 
-from app.ai.prompts import EXPLAIN_RESULTS_PROMPT, SYSTEM_PROMPT, build_charts_catalog, build_schema_context
+from app.ai.prompts import (
+    ENRICH_ANSWER_PROMPT,
+    EXPLAIN_RESULTS_PROMPT,
+    SYSTEM_PROMPT,
+    build_charts_catalog,
+    build_schema_context,
+)
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+MAX_SUGGESTIONS = 3
 
 
 class AIServiceError(Exception):
@@ -24,6 +32,31 @@ def _extract_json(text: str) -> dict[str, Any]:
         if match:
             return json.loads(match.group())
         raise AIServiceError("La IA no devolvió JSON válido") from None
+
+
+def normalize_suggestions(raw: Any) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+    suggestions: list[str] = []
+    for item in raw:
+        text = str(item).strip()
+        if text and len(text) <= 120:
+            suggestions.append(text)
+        if len(suggestions) >= MAX_SUGGESTIONS:
+            break
+    return suggestions
+
+
+def parse_answer_payload(content: str) -> tuple[str, list[str]]:
+    try:
+        data = _extract_json(content)
+        answer = str(data.get("answer") or data.get("explanation") or "").strip()
+        suggestions = normalize_suggestions(data.get("follow_up_suggestions"))
+        if answer:
+            return answer, suggestions
+    except (AIServiceError, json.JSONDecodeError):
+        pass
+    return content.strip(), []
 
 
 class OpenAIClient:
@@ -52,7 +85,7 @@ class OpenAIClient:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            temperature=0.1,
+            temperature=0.15,
             response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content or "{}"
@@ -65,11 +98,15 @@ class OpenAIClient:
         sql: str,
         result: list[dict[str, Any]],
         has_chart: bool = False,
-    ) -> tuple[str, int]:
+        dataset_name: str = "",
+    ) -> tuple[str, list[str], int]:
         preview = json.dumps(result[:10], ensure_ascii=False, default=str)
-        chart_note = "\nSe incluirá un gráfico con el resultado." if has_chart else ""
+        chart_note = (
+            "\nSe incluirá un gráfico visual con el resultado." if has_chart else ""
+        )
         prompt = (
-            f"Pregunta: {user_message}\n\n"
+            f"Dataset: {dataset_name}\n"
+            f"Pregunta del usuario: {user_message}\n\n"
             f"SQL ejecutado:\n{sql}\n\n"
             f"Resultado (JSON, máx. 10 filas):\n{preview}{chart_note}"
         )
@@ -79,11 +116,50 @@ class OpenAIClient:
                 {"role": "system", "content": EXPLAIN_RESULTS_PROMPT},
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.3,
+            temperature=0.45,
+            response_format={"type": "json_object"},
         )
-        content = response.choices[0].message.content or ""
+        content = response.choices[0].message.content or "{}"
         tokens = response.usage.total_tokens if response.usage else 0
-        return content.strip(), tokens
+        answer, suggestions = parse_answer_payload(content)
+        return answer, suggestions, tokens
+
+    def enrich_answer(
+        self,
+        user_message: str,
+        intent: str,
+        draft_answer: str,
+        dataset_name: str,
+        chart_titles: list[str],
+        plan_suggestions: list[str] | None = None,
+    ) -> tuple[str, list[str], int]:
+        charts_text = ", ".join(chart_titles) if chart_titles else "ninguno"
+        plan_suggestions_text = (
+            json.dumps(plan_suggestions or [], ensure_ascii=False)
+        )
+        prompt = (
+            f"Dataset: {dataset_name}\n"
+            f"Intent: {intent}\n"
+            f"Pregunta del usuario: {user_message}\n"
+            f"Gráficos incluidos: {charts_text}\n"
+            f"Sugerencias del plan (puedes mejorarlas): {plan_suggestions_text}\n\n"
+            f"Borrador de respuesta:\n{draft_answer}"
+        )
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": ENRICH_ANSWER_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.45,
+            response_format={"type": "json_object"},
+        )
+        content = response.choices[0].message.content or "{}"
+        tokens = response.usage.total_tokens if response.usage else 0
+        answer, suggestions = parse_answer_payload(content)
+        if not suggestions and plan_suggestions:
+            suggestions = plan_suggestions[:MAX_SUGGESTIONS]
+        return answer, suggestions, tokens
 
 
 def build_schema_context_from_dataset(

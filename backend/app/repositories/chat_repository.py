@@ -49,6 +49,7 @@ class ChatRepository:
         result_json: list | dict | None = None,
         chart_hint_json: dict | None = None,
         charts_json: list | None = None,
+        suggestions_json: list | None = None,
         tokens_used: int | None = None,
     ) -> ChatMessage:
         message = ChatMessage(
@@ -59,6 +60,7 @@ class ChatRepository:
             result_json=result_json,
             chart_hint_json=chart_hint_json,
             charts_json=charts_json,
+            suggestions_json=suggestions_json,
             tokens_used=tokens_used,
         )
         self.db.add(message)

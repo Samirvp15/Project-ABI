@@ -4,19 +4,27 @@ import { ChevronDown, ChevronUp, Code2, User } from "lucide-react";
 import { useState } from "react";
 
 import { ChatChartsSection } from "@/components/chat/chat-charts-section";
+import { ChatFollowUpSuggestions } from "@/components/chat/chat-follow-up-suggestions";
 import { resolveMessageCharts } from "@/components/chat/resolve-message-charts";
 import { cn } from "@/lib/utils";
 import type { ChatMessageItem } from "@/types/ai";
 
 interface ChatMessageProps {
   message: ChatMessageItem;
+  onSuggestionSelect?: (suggestion: string) => void;
+  suggestionsDisabled?: boolean;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  onSuggestionSelect,
+  suggestionsDisabled = false,
+}: ChatMessageProps) {
   const [showSql, setShowSql] = useState(false);
   const isUser = message.role === "user";
   const charts = resolveMessageCharts(message);
   const hasCharts = !isUser && charts.length > 0;
+  const suggestions = !isUser && message.suggestions?.length ? message.suggestions : [];
   const showTable =
     !isUser &&
     !hasCharts &&
@@ -41,6 +49,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             isUser
               ? "bg-primary text-primary-foreground"
               : "border bg-card text-foreground shadow-sm",
+            !isUser && "whitespace-pre-wrap",
           )}
         >
           {message.content}
@@ -97,6 +106,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
               </p>
             )}
           </div>
+        )}
+
+        {suggestions.length > 0 && onSuggestionSelect && (
+          <ChatFollowUpSuggestions
+            suggestions={suggestions}
+            onSelect={onSuggestionSelect}
+            disabled={suggestionsDisabled}
+          />
         )}
       </div>
     </div>

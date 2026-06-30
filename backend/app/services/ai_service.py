@@ -21,15 +21,11 @@ from app.ai.chart_helpers import (
 )
 
 from app.ai.openai_client import (
-
     AIServiceError,
-
     OpenAIClient,
-
     build_charts_catalog_from_widgets,
-
     build_schema_context_from_dataset,
-
+    normalize_suggestions,
 )
 
 from app.core.config import settings
@@ -320,7 +316,9 @@ class AIService:
 
         answer = str(plan.get("explanation") or "Consulta procesada.")
 
+        suggestions: list[str] = normalize_suggestions(plan.get("follow_up_suggestions"))
 
+        used_query_explain = False
 
         if intent == "show_charts":
 
@@ -422,15 +420,19 @@ class AIService:
 
                     chart_widgets = [query_widget]
 
-                explain, tokens2 = client.explain_results(
+                explain, explain_suggestions, tokens2 = client.explain_results(
 
-                    message, sql, result, has_chart=bool(chart_widgets)
+                    message, sql, result, has_chart=bool(chart_widgets), dataset_name=dataset.name
 
                 )
 
                 total_tokens += tokens2
 
                 answer = explain
+
+                suggestions = explain_suggestions or suggestions
+
+                used_query_explain = True
 
             except (SQLValidationError, SQLExecutionError) as exc:
 
@@ -449,6 +451,32 @@ class AIService:
                 chart_hint = ChartHint(type="none")
 
                 chart_widgets = []
+
+
+
+        if not used_query_explain:
+
+            enriched, enriched_suggestions, tokens3 = client.enrich_answer(
+
+                message,
+
+                intent,
+
+                answer,
+
+                dataset.name,
+
+                [str(w.get("title", "")) for w in chart_widgets],
+
+                plan_suggestions=suggestions,
+
+            )
+
+            total_tokens += tokens3
+
+            answer = enriched
+
+            suggestions = enriched_suggestions or suggestions
 
 
 
@@ -476,6 +504,8 @@ class AIService:
 
             charts_json=charts_payload,
 
+            suggestions_json=suggestions or None,
+
             tokens_used=total_tokens,
 
         )
@@ -495,6 +525,8 @@ class AIService:
             chart_hint=chart_hint if chart_hint.type != "none" else None,
 
             charts=dashboard_charts,
+
+            suggestions=suggestions or None,
 
             tokens_used=total_tokens,
 
@@ -585,6 +617,8 @@ class AIService:
                     chart_hint=chart_hint,
 
                     charts=charts,
+
+                    suggestions=m.suggestions_json,
 
                     tokens_used=m.tokens_used,
 

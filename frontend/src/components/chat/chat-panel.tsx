@@ -3,7 +3,7 @@
 import { Loader2, MessageSquare, Send, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ChatAssistantLoading } from "@/components/chat/chat-assistant-loading";
+import { ChatFollowUpSuggestions } from "@/components/chat/chat-follow-up-suggestions";
 import { ChatChartsSection } from "@/components/chat/chat-charts-section";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [pendingUserText, setPendingUserText] = useState<string | null>(null);
   const [liveCharts, setLiveCharts] = useState<ChatChartWidget[] | null>(null);
+  const [liveSuggestions, setLiveSuggestions] = useState<string[] | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: sessions } = useChatSessions(datasetId);
@@ -48,6 +49,8 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
 
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
   const showLiveCharts = !!liveCharts?.length && !lastAssistant?.charts?.length;
+  const showLiveSuggestions =
+    !!liveSuggestions?.length && !lastAssistant?.suggestions?.length;
 
   const pendingUserInHistory =
     pendingUserText &&
@@ -63,7 +66,10 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
     if (lastAssistant?.charts?.length) {
       setLiveCharts(null);
     }
-  }, [lastAssistant?.charts]);
+    if (lastAssistant?.suggestions?.length) {
+      setLiveSuggestions(null);
+    }
+  }, [lastAssistant?.charts, lastAssistant?.suggestions]);
 
   useEffect(() => {
     if (!sendMessage.isPending && pendingUserText && pendingUserInHistory) {
@@ -88,6 +94,9 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
         setSessionId(response.session_id);
         if (response.charts?.length) {
           setLiveCharts(response.charts);
+        }
+        if (response.suggestions?.length) {
+          setLiveSuggestions(response.suggestions);
         }
       } catch (err) {
         setPendingUserText(null);
@@ -147,7 +156,12 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
           )}
 
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+            <ChatMessage
+              key={message.id}
+              message={message}
+              onSuggestionSelect={handleSend}
+              suggestionsDisabled={sendMessage.isPending}
+            />
           ))}
 
           {showPendingTurn && (
@@ -161,6 +175,17 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
             <div className="flex gap-3">
               <div className="h-8 w-8 shrink-0" />
               <ChatChartsSection charts={liveCharts} />
+            </div>
+          )}
+
+          {showLiveSuggestions && liveSuggestions && (
+            <div className="flex gap-3">
+              <div className="h-8 w-8 shrink-0" />
+              <ChatFollowUpSuggestions
+                suggestions={liveSuggestions}
+                onSelect={handleSend}
+                disabled={sendMessage.isPending}
+              />
             </div>
           )}
 

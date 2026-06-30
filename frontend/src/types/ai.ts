@@ -19,6 +19,7 @@ export interface ChatResponse {
   result?: Record<string, unknown>[] | null;
   chart_hint?: ChartHint | null;
   charts?: ChatChartWidget[] | null;
+  suggestions?: string[] | null;
   tokens_used: number;
 }
 
@@ -38,6 +39,7 @@ export interface ChatMessageItem {
   result_json?: Record<string, unknown>[] | null;
   chart_hint?: ChartHint | null;
   charts?: ChatChartWidget[] | null;
+  suggestions?: string[] | null;
   tokens_used?: number | null;
   created_at: string;
 }

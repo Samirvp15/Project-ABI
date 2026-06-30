@@ -50,6 +50,7 @@ class ChatMessage(Base):
     result_json: Mapped[list | dict | None] = mapped_column(JSONB, nullable=True)
     chart_hint_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     charts_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    suggestions_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     tokens_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
