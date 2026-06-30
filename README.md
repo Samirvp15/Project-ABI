@@ -9,7 +9,7 @@ MVP de asistente de inteligencia de negocios con IA. Sube archivos Excel, CSV o 
 | Frontend | Next.js, TypeScript, TailwindCSS, Shadcn UI, TanStack Query |
 | Backend | Python 3.12, FastAPI, SQLAlchemy, Alembic, Pydantic |
 | Datos | PostgreSQL, Pandas, Polars, DuckDB (Sprint 2+) |
-| IA | OpenAI GPT (Sprint 4) |
+| IA | OpenAI GPT-5.4-mini (Sprint 4) |
 
 ## Estructura Monorepo
 
@@ -111,7 +111,7 @@ npm run dev
 
 - [x] Motor DuckDB in-memory para SQL seguro (solo SELECT)
 - [x] Validación read-only de SQL generado
-- [x] Integración OpenAI (gpt-4o-mini) con prompts estructurados
+- [x] Integración OpenAI (gpt-5.4-mini) con prompts estructurados
 - [x] `POST /api/v1/ai/chat` — pregunta → SQL → resultado → explicación
 - [x] Sesiones y historial (`chat_sessions`, `chat_messages`)
 - [x] `GET /api/v1/ai/datasets/{id}/sessions` + `GET /api/v1/ai/sessions/{id}/messages`
@@ -142,11 +142,14 @@ npm run dev
 
 ## Configuración IA
 
-Añade tu clave en `.env`:
+Añade tu clave y opcionalmente el modelo en `.env`:
 
 ```env
 OPENAI_API_KEY=sk-your-key-here
+OPENAI_MODEL=gpt-5.4-mini
 ```
+
+Si omites `OPENAI_MODEL`, se usa `gpt-5.4-mini` por defecto (`backend/app/core/config.py`).
 
 Sin clave, el chat responde con error 503 (analytics y dashboards siguen funcionando).
 

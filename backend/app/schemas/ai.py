@@ -17,6 +17,9 @@ class ChartBuildSpec(BaseModel):
     x_column: str | None = None
     y_column: str | None = None
     aggregation: str = "sum"
+    date_from: str | None = None
+    date_to: str | None = None
+    column_filters: dict[str, list[str]] | None = None
 
 
 class ChatRequest(BaseModel):

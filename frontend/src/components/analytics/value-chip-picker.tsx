@@ -9,6 +9,7 @@ interface ValueChipPickerProps {
   value: string[];
   onChange: (next: string[]) => void;
   emptyMeansAll?: boolean;
+  pendingHint?: string;
 }
 
 export function ValueChipPicker({
@@ -18,6 +19,7 @@ export function ValueChipPicker({
   value,
   onChange,
   emptyMeansAll = true,
+  pendingHint,
 }: ValueChipPickerProps) {
   if (options.length === 0) return null;
 
@@ -68,6 +70,9 @@ export function ValueChipPicker({
       </div>
       {emptyMeansAll && allSelected && (
         <p className="text-[10px] text-muted-foreground">Sin selección = se muestran todos los valores.</p>
+      )}
+      {!emptyMeansAll && allSelected && pendingHint && (
+        <p className="text-[10px] text-muted-foreground">{pendingHint}</p>
       )}
     </div>
   );

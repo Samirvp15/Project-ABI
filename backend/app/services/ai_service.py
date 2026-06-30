@@ -370,7 +370,13 @@ class AIService:
 
             elif build_errors:
 
-                answer = f"No pude generar los gráficos solicitados: {'; '.join(build_errors[:3])}"
+                answer = (
+
+                    "No pude generar los gráficos solicitados: {'; '.join(build_errors[:3])}. "
+
+                    "Verifica nombres de columnas y valores exactos en column_filters."
+
+                )
 
 
 

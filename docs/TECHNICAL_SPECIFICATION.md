@@ -912,7 +912,7 @@ Week 5-6 ██████████  Sprint 4: AI Chat
 |------|--------|------------|------------|
 | Large files crash API memory | High | Medium | Stream parsing; row limits; background jobs in Phase 2 |
 | AI generates invalid/unsafe SQL | High | Medium | Read-only DuckDB sandbox; SQL validator; allowlist of functions |
-| OpenAI latency/cost | Medium | High | Cache schema context; use gpt-4o-mini for simple queries; token budgets |
+| OpenAI latency/cost | Medium | High | Cache schema context; use gpt-5.4-mini; token budgets |
 | Dynamic table management complexity | Medium | Medium | JSONB row storage as fallback; strict naming convention |
 | Type inference errors | Medium | High | Show inferred types in UI; allow manual override in Phase 2 |
 | Scope creep in MVP | High | High | Strict sprint boundaries; defer filters/sharing to Phase 2 |
@@ -941,6 +941,7 @@ Week 5-6 ██████████  Sprint 4: AI Chat
 DATABASE_URL=postgresql+asyncpg://abi:abi@localhost:5432/abi
 SECRET_KEY=change-me-in-production
 OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-5.4-mini
 ACCESS_TOKEN_EXPIRE_MINUTES=15
 REFRESH_TOKEN_EXPIRE_DAYS=7
 MAX_UPLOAD_SIZE_MB=50

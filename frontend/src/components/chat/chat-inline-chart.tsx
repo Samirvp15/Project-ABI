@@ -151,7 +151,11 @@ export function ChatInlineChart({ chart }: ChatInlineChartProps) {
     const data = asPieData(chart.data);
     if (!data.length) return <EmptyChart title={chart.title} />;
     return (
-      <ChartShell title={chart.title}>
+      <ChartShell
+        title={chart.title}
+        filterSummary={filterSummary}
+        dateSummary={dateSummary}
+      >
         <ResponsiveContainer
           width="100%"
           height={CHART_HEIGHT}

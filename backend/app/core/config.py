@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 50
 
     openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-5.4-mini"
     ai_rate_limit_per_hour: int = 20
     ai_sql_result_limit: int = 100
 

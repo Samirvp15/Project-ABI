@@ -18,6 +18,32 @@ def normalize_chart_builds(plan: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def _parse_build_spec(cfg: dict[str, Any]) -> dict[str, Any]:
+    column_filters = cfg.get("column_filters")
+    if isinstance(column_filters, dict):
+        cleaned = {
+            str(column): [str(value) for value in values if value is not None]
+            for column, values in column_filters.items()
+            if isinstance(values, list) and values
+        }
+        column_filters = cleaned or None
+    else:
+        column_filters = None
+
+    date_from = cfg.get("date_from")
+    date_to = cfg.get("date_to")
+
+    return {
+        "chart_type": str(cfg.get("chart_type") or "bar"),
+        "x_column": cfg.get("x_column"),
+        "y_column": cfg.get("y_column"),
+        "aggregation": str(cfg.get("aggregation") or "sum"),
+        "date_from": str(date_from).strip() if date_from else None,
+        "date_to": str(date_to).strip() if date_to else None,
+        "column_filters": column_filters,
+    }
+
+
 def build_widgets_from_specs(
     columns_meta: list[dict[str, Any]],
     rows: list[dict[str, Any]],
@@ -26,15 +52,19 @@ def build_widgets_from_specs(
     widgets: list[dict[str, Any]] = []
     errors: list[str] = []
     for cfg in builds[:MAX_CHAT_CHARTS]:
+        spec = _parse_build_spec(cfg)
         try:
             widgets.append(
                 build_custom_chart(
                     columns_meta,
                     rows,
-                    chart_type=str(cfg.get("chart_type") or "bar"),
-                    x_column=cfg.get("x_column"),
-                    y_column=cfg.get("y_column"),
-                    aggregation=str(cfg.get("aggregation") or "sum"),
+                    chart_type=spec["chart_type"],
+                    x_column=spec["x_column"],
+                    y_column=spec["y_column"],
+                    aggregation=spec["aggregation"],
+                    date_from=spec["date_from"],
+                    date_to=spec["date_to"],
+                    column_filters=spec["column_filters"],
                 )
             )
         except ValueError as exc:

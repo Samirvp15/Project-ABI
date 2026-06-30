@@ -8,6 +8,7 @@ import {
   isDimensionColumn,
 } from "@/components/analytics/chart-column-values";
 import { SegmentFilter } from "@/components/analytics/segment-filter";
+import { ChartPreviewSummary } from "@/components/analytics/chart-preview-summary";
 import { ValueChipPicker } from "@/components/analytics/value-chip-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -152,15 +153,42 @@ export function ChartBuilderPanel({
     needsX && isDimensionColumn(xColumnMeta) && xValueOptions.length > 0;
 
   const buildColumnFilters = (): Record<string, string[]> | undefined => {
-    const filters: Record<string, string[]> = { ...segmentFilters };
+    const filters: Record<string, string[]> = {};
+    for (const [col, vals] of Object.entries(segmentFilters)) {
+      if (vals.length > 0) filters[col] = vals;
+    }
     if (xAxisValues.length > 0 && resolvedX) {
       filters[resolvedX] = xAxisValues;
     }
-    const active = Object.fromEntries(
-      Object.entries(filters).filter(([, vals]) => vals.length > 0),
-    );
-    return Object.keys(active).length > 0 ? active : undefined;
+    return Object.keys(filters).length > 0 ? filters : undefined;
   };
+
+  const previewModel = useMemo(
+    () => ({
+      chartType,
+      xColumn: resolvedX || undefined,
+      yColumn: resolvedY || undefined,
+      aggregation: effectiveAggregation,
+      xAxisValues,
+      segmentFilters,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      needsX,
+      needsY,
+    }),
+    [
+      chartType,
+      resolvedX,
+      resolvedY,
+      effectiveAggregation,
+      xAxisValues,
+      segmentFilters,
+      dateFrom,
+      dateTo,
+      needsX,
+      needsY,
+    ],
+  );
 
   const handleSubmit = () => {
     onGenerate({
@@ -173,20 +201,6 @@ export function ChartBuilderPanel({
       column_filters: buildColumnFilters(),
     });
   };
-
-  const previewText = useMemo(() => {
-    const parts: string[] = [];
-    if (needsX && resolvedX) parts.push(`eje X: ${resolvedX}`);
-    if (needsY && resolvedY) parts.push(`eje Y: ${resolvedY}`);
-    if (xAxisValues.length > 0) parts.push(`solo ${xAxisValues.join(", ")}`);
-    const seg = Object.entries(segmentFilters).filter(([, v]) => v.length);
-    if (seg.length) {
-      parts.push(
-        seg.map(([col, vals]) => `${col} = ${vals.join("/")}`).join(" · "),
-      );
-    }
-    return parts.join(" · ");
-  }, [needsX, needsY, resolvedX, resolvedY, xAxisValues, segmentFilters]);
 
   return (
     <Card className="overflow-hidden border shadow-sm">
@@ -395,12 +409,12 @@ export function ChartBuilderPanel({
           )}
         </section>
 
-        {previewText && (
-          <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Vista previa: </span>
-            {previewText}
+        <section className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Vista previa
           </p>
-        )}
+          <ChartPreviewSummary model={previewModel} />
+        </section>
 
         <div className="flex flex-wrap items-center gap-3 border-t pt-4">
           <Button

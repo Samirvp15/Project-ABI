@@ -1,5 +1,6 @@
 from app.ai.chart_helpers import (
     build_widget_from_sql_result,
+    build_widgets_from_specs,
     match_widgets_by_message,
     normalize_chart_builds,
     pick_overview_widgets,
@@ -62,3 +63,30 @@ def test_pick_overview_widgets_prioritizes_kpi():
     ]
     picked = pick_overview_widgets(widgets, limit=2)
     assert picked[0]["type"] == "kpi"
+
+
+def test_build_widgets_from_specs_column_filters():
+    columns_meta = [
+        {"name": "region", "inferred_type": "categorical"},
+        {"name": "producto", "inferred_type": "categorical"},
+        {"name": "ventas", "inferred_type": "numeric"},
+    ]
+    rows = [
+        {"region": "Lima", "producto": "A", "ventas": 100},
+        {"region": "Lima", "producto": "B", "ventas": 50},
+        {"region": "Arequipa", "producto": "A", "ventas": 200},
+    ]
+    builds = [
+        {
+            "chart_type": "bar",
+            "x_column": "producto",
+            "y_column": "ventas",
+            "aggregation": "sum",
+            "column_filters": {"region": ["Lima"]},
+        }
+    ]
+    widgets, errors = build_widgets_from_specs(columns_meta, rows, builds)
+    assert not errors
+    assert len(widgets) == 1
+    assert widgets[0]["config"].get("filter_summary") == "Region = Lima"
+    assert len(widgets[0]["data"]) == 2

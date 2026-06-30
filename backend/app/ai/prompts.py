@@ -6,6 +6,11 @@ Capacidades:
 1. **query** — Responder con SQL SELECT sobre la tabla `data`.
 2. **show_charts** — Mostrar gráficos existentes del catálogo (usa `widget_ids` exactos).
 3. **build_chart** — Generar gráficos nuevos con `chart_builds` (kpi, line, area, bar, horizontal_bar, pie, donut, histogram, scatter).
+   Soporta filtros avanzados igual que el explorador de gráficos:
+   - **column_filters**: dict `{ "columna": ["valor1", "valor2"] }` para filtrar filas antes de agregar.
+     - Filtrar valores del eje X: incluye `x_column` en `column_filters`.
+     - Segmentar por columnas extra: añade otras columnas categóricas/booleanas con valores exactos del esquema.
+   - **date_from** / **date_to**: rango de fechas (YYYY-MM-DD) cuando el dataset tiene columna de fecha.
 4. **overview** — Resumen ejecutivo del dataset sin SQL.
 
 Reglas técnicas:
@@ -14,6 +19,8 @@ Reglas técnicas:
 - Usa nombres de columnas EXACTOS del esquema.
 - Responde en el mismo idioma que la pregunta del usuario.
 - Incluye tantos gráficos como la pregunta requiera (hasta 8).
+- Si el usuario pide filtrar por región, categoría, segmento u otro valor categórico, usa `column_filters` con valores exactos del esquema.
+- Si pide un rango temporal, usa `date_from` y/o `date_to`.
 
 Estilo de `explanation` (borrador interno, será refinado):
 - 2-4 oraciones con el hallazgo principal y contexto útil.
@@ -35,14 +42,24 @@ Responde SIEMPRE con JSON válido:
       "chart_type": "bar|line|pie|...",
       "x_column": "nombre o null",
       "y_column": "nombre o null",
-      "aggregation": "sum|avg|count"
+      "aggregation": "sum|avg|count",
+      "date_from": "YYYY-MM-DD o null",
+      "date_to": "YYYY-MM-DD o null",
+      "column_filters": {
+        "columna_categoria": ["valor1", "valor2"]
+      }
     }
   ],
   "chart_build": {
     "chart_type": "bar|line|pie|...",
     "x_column": "nombre o null",
     "y_column": "nombre o null",
-    "aggregation": "sum|avg|count"
+    "aggregation": "sum|avg|count",
+    "date_from": "YYYY-MM-DD o null",
+    "date_to": "YYYY-MM-DD o null",
+    "column_filters": {
+      "columna_categoria": ["valor1"]
+    }
   },
   "chart_hint": {
     "type": "line|bar|pie|none",
@@ -142,12 +159,26 @@ def build_schema_context(
             if metrics:
                 col_type = col.get("type", "unknown")
                 lines.append(f"- {col['name']} ({col_type}): {metrics}")
+                top_values = metrics.get("top_values") if isinstance(metrics, dict) else None
+                if top_values and col_type in {"categorical", "boolean"}:
+                    values_text = ", ".join(
+                        f"\"{item.get('value')}\" ({item.get('count', '?')})"
+                        for item in top_values[:10]
+                        if item.get("value") is not None
+                    )
+                    if values_text:
+                        lines.append(
+                            f"  → Valores para column_filters: {values_text}"
+                        )
 
     lines.extend(["", "Filas de ejemplo (máx. 5):"])
     for row in sample_rows[:5]:
         lines.append(str(row))
 
     lines.append("")
+    lines.append(
+        "Filtros avanzados: usa column_filters (valores exactos) y date_from/date_to en build_chart."
+    )
     lines.append("Tabla DuckDB: `data` (usa FROM data en tus consultas).")
     return "\n".join(lines)
 
@@ -162,9 +193,21 @@ def build_charts_catalog(widgets: list[dict]) -> str:
     ]
     for widget in widgets[:MAX_CHAT_CHARTS]:
         config = widget.get("config", {})
-        config_parts = ", ".join(f"{k}={v}" for k, v in config.items() if v)
+        config_parts = ", ".join(
+            f"{k}={v}"
+            for k, v in config.items()
+            if v and k not in {"filter_summary", "date_filter_summary", "x_label", "y_label"}
+        )
+        filter_summary = config.get("filter_summary")
+        date_summary = config.get("date_filter_summary")
+        extras: list[str] = []
+        if filter_summary:
+            extras.append(f'filters="{filter_summary}"')
+        if date_summary:
+            extras.append(f'dates="{date_summary}"')
+        extra_text = f" | {' | '.join(extras)}" if extras else ""
         lines.append(
             f"- id=\"{widget['id']}\" | type={widget['type']} | "
-            f"title=\"{widget['title']}\" | {config_parts}"
+            f"title=\"{widget['title']}\" | {config_parts}{extra_text}"
         )
     return "\n".join(lines)
