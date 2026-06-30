@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, X } from "lucide-react";
+import { BarChart3, LineChart, Sparkles, X } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import {
@@ -10,12 +10,7 @@ import {
 import { CHARTS_GRID_CLASS } from "@/components/charts/chart-grid-layout";
 import { DashboardWidgetRenderer } from "@/components/charts/dashboard-widget-renderer";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBuildChart, useDashboard } from "@/hooks/use-dashboard";
 import { useDataset } from "@/hooks/use-datasets";
 import type { ChartBuildRequest, DashboardWidget } from "@/types/dashboard";
@@ -63,13 +58,19 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
 
   return (
     <section className="space-y-6">
-      <SectionHeader
-        subtitle={
-          dashboardMeta
-            ? `${dashboardMeta.summary.row_count.toLocaleString()} filas · ${activeCharts.length} gráfico(s) activo(s)`
-            : "Configura y genera gráficos según las columnas que elijas"
-        }
-      />
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-violet-500/10 p-2.5 text-violet-600 dark:text-violet-400">
+          <BarChart3 className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold">Análisis gráfico</h2>
+          <p className="text-sm text-muted-foreground">
+            {dashboardMeta
+              ? `${dashboardMeta.summary.row_count.toLocaleString()} filas · ${activeCharts.length} gráfico(s) activo(s)`
+              : "Configura y genera gráficos según las columnas que elijas"}
+          </p>
+        </div>
+      </div>
 
       {dataset?.columns && (
         <ChartBuilderPanel
@@ -82,13 +83,17 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
       )}
 
       {suggestions.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Sugerencias rápidas</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-500" />
+            <p className="text-sm font-medium">Sugerencias rápidas</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {suggestions.map((widget) => (
               <ChartSuggestionChip
                 key={widget.id}
                 label={widget.title}
+                chartType={widget.type}
                 onClick={() => handleSuggestion(widget)}
               />
             ))}
@@ -97,10 +102,11 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
       )}
 
       {activeCharts.length > 0 ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">
-              Gráficos generados ({activeCharts.length})
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">
+              Gráficos generados{" "}
+              <span className="text-muted-foreground">({activeCharts.length})</span>
             </p>
             <Button variant="outline" size="sm" onClick={() => setActiveCharts([])}>
               Limpiar todos
@@ -124,32 +130,20 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
           </div>
         </div>
       ) : (
-        <Card>
-          <CardHeader>
+        <Card className="border border-dashed bg-muted/20 shadow-none">
+          <CardHeader className="items-center text-center">
+            <div className="mb-2 rounded-full bg-muted p-3">
+              <LineChart className="h-6 w-6 text-muted-foreground" />
+            </div>
             <CardTitle className="text-base">Sin gráficos aún</CardTitle>
-            <CardDescription>
-              Usa el explorador arriba para elegir columnas y tipo de gráfico, o haz clic en una
-              sugerencia rápida.
+            <CardDescription className="max-w-md">
+              Usa el explorador para elegir columnas y tipo de gráfico, o haz clic en una
+              sugerencia rápida para empezar.
             </CardDescription>
           </CardHeader>
+          <CardContent />
         </Card>
       )}
     </section>
-  );
-}
-
-function SectionHeader({ subtitle }: { subtitle?: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="rounded-lg bg-muted p-2">
-        <BarChart3 className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div>
-        <h2 className="text-xl font-semibold">Análisis gráfico</h2>
-        <p className="text-sm text-muted-foreground">
-          {subtitle ?? "Gráficos dinámicos según columnas, agregación y rango de fechas"}
-        </p>
-      </div>
-    </div>
   );
 }

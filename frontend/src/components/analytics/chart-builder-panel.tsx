@@ -1,9 +1,11 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DateRangeFilter } from "@/components/dashboard/date-range-filter";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { ChartBuildRequest, DateRange, WidgetType } from "@/types/dashboard";
@@ -129,13 +131,17 @@ export function ChartBuilderPanel({
   };
 
   return (
-    <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
-      <div>
-        <h3 className="font-medium">Explorador de gráficos</h3>
-        <p className="text-sm text-muted-foreground">
+    <Card className="border-0 bg-gradient-to-br from-muted/30 to-background shadow-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Explorador de gráficos
+        </CardTitle>
+        <CardDescription>
           Elige tipo, columnas y agregación para generar visualizaciones dinámicas
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
@@ -243,16 +249,31 @@ export function ChartBuilderPanel({
         </Button>
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
+const CHART_TYPE_ICONS: Partial<Record<WidgetType, string>> = {
+  bar: "Barras",
+  horizontal_bar: "H. barras",
+  line: "Línea",
+  area: "Área",
+  pie: "Pastel",
+  donut: "Dona",
+  histogram: "Histograma",
+  scatter: "Scatter",
+  kpi: "KPI",
+};
+
 export function ChartSuggestionChip({
   label,
+  chartType,
   onClick,
   disabled,
 }: {
   label: string;
+  chartType?: WidgetType;
   onClick: () => void;
   disabled?: boolean;
 }) {
@@ -262,11 +283,16 @@ export function ChartSuggestionChip({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded-full border bg-background px-3 py-1 text-xs transition-colors hover:bg-muted",
-        disabled && "opacity-50",
+        "group flex flex-col items-start gap-1 rounded-xl border bg-background/80 p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/40 hover:shadow-sm",
+        disabled && "cursor-not-allowed opacity-50",
       )}
     >
-      {label}
+      {chartType && (
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+          {CHART_TYPE_ICONS[chartType] ?? chartType}
+        </span>
+      )}
+      <span className="line-clamp-2 text-sm font-medium leading-snug">{label}</span>
     </button>
   );
 }
