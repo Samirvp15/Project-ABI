@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Code2, User } from "lucide-react";
 import { useState } from "react";
 
 import { ChatChartsSection } from "@/components/chat/chat-charts-section";
+import { resolveMessageCharts } from "@/components/chat/resolve-message-charts";
 import { cn } from "@/lib/utils";
 import type { ChatMessageItem } from "@/types/ai";
 
@@ -14,7 +15,8 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const [showSql, setShowSql] = useState(false);
   const isUser = message.role === "user";
-  const hasCharts = !isUser && Array.isArray(message.charts) && message.charts.length > 0;
+  const charts = resolveMessageCharts(message);
+  const hasCharts = !isUser && charts.length > 0;
   const showTable =
     !isUser &&
     !hasCharts &&
@@ -32,10 +34,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {isUser ? <User className="h-4 w-4" /> : <span className="text-xs font-bold">AI</span>}
       </div>
 
-      <div className={cn("min-w-0 max-w-[85%] space-y-2", isUser && "text-right")}>
+      <div className={cn("min-w-0 flex-1 space-y-2", isUser && "flex flex-col items-end")}>
         <div
           className={cn(
-            "inline-block rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+            "inline-block max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
             isUser
               ? "bg-primary text-primary-foreground"
               : "border bg-card text-foreground shadow-sm",
@@ -45,7 +47,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
 
         {!isUser && message.sql_generated && (
-          <div className="text-left">
+          <div className="w-full max-w-full text-left">
             <button
               type="button"
               onClick={() => setShowSql((v) => !v)}
@@ -63,10 +65,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         )}
 
-        {hasCharts && <ChatChartsSection charts={message.charts!} />}
+        {hasCharts && <ChatChartsSection charts={charts} />}
 
         {showTable && (
-          <div className="overflow-x-auto rounded-lg border text-left text-xs">
+          <div className="w-full max-w-full overflow-x-auto rounded-lg border text-left text-xs">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/40">

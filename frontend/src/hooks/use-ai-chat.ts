@@ -27,8 +27,8 @@ export function useSendChatMessage(datasetId: string) {
   return useMutation({
     mutationFn: (payload: Omit<ChatRequest, "dataset_id">) =>
       sendChatMessage({ ...payload, dataset_id: datasetId }),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["ai", "messages", data.session_id] });
+    onSuccess: async (data) => {
+      await queryClient.refetchQueries({ queryKey: ["ai", "messages", data.session_id] });
       queryClient.invalidateQueries({ queryKey: ["ai", "sessions", datasetId] });
     },
   });
