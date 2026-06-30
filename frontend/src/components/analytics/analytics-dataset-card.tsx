@@ -14,47 +14,49 @@ import { cn } from "@/lib/utils";
 
 export function AnalyticsDatasetCard({ dataset }: { dataset: DatasetListItem }) {
   return (
-    <Link href={`/analytics/${dataset.id}`} className="group block h-full">
-      <Card className="h-full border-0 bg-card/80 shadow-sm transition-all hover:border-primary/30 hover:shadow-md group-hover:-translate-y-0.5">
-        <CardContent className="flex h-full flex-col p-5">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-              <BarChart3 className="h-5 w-5" />
-            </div>
-            <DatasetFileTypeBadge fileType={dataset.file_type} />
+    <Card className="group flex h-full flex-col border-0 bg-card/80 shadow-sm transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
+      <CardContent className="flex h-full flex-col p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+            <BarChart3 className="h-5 w-5" />
           </div>
+          <DatasetFileTypeBadge fileType={dataset.file_type} />
+        </div>
 
-          <h3 className="font-semibold leading-snug group-hover:text-primary">{dataset.name}</h3>
-          <p className="mt-1 truncate text-sm text-muted-foreground">{dataset.original_filename}</p>
+        <h3 className="font-semibold leading-snug">{dataset.name}</h3>
+        <p className="mt-1 truncate text-sm text-muted-foreground">{dataset.original_filename}</p>
 
-          <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Rows3 className="h-3.5 w-3.5" />
-              {dataset.row_count.toLocaleString()} filas
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Columns3 className="h-3.5 w-3.5" />
-              {dataset.column_count} cols
-            </span>
-          </div>
-
-          <p className="mt-2 text-xs text-muted-foreground">
-            Actualizado{" "}
-            {formatDistanceToNow(new Date(dataset.created_at), { addSuffix: true, locale: es })}
-          </p>
-
-          <span
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "mt-auto w-full pt-4 group-hover:bg-primary group-hover:text-primary-foreground",
-            )}
-          >
-            Ver analytics y gráficos
-            <ArrowRight className="ml-auto h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        <div className="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <Rows3 className="h-3.5 w-3.5" />
+            {dataset.row_count.toLocaleString()} filas
           </span>
-        </CardContent>
-      </Card>
-    </Link>
+          <span className="inline-flex items-center gap-1">
+            <Columns3 className="h-3.5 w-3.5" />
+            {dataset.column_count} cols
+          </span>
+        </div>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          Actualizado{" "}
+          {formatDistanceToNow(new Date(dataset.created_at), { addSuffix: true, locale: es })}
+        </p>
+
+        <Link
+          href={`/analytics/${dataset.id}`}
+          className={cn(
+            buttonVariants({ variant: "default", size: "lg" }),
+            "mt-5 w-full justify-between gap-2 px-4 shadow-sm",
+          )}
+        >
+          <span className="inline-flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Ver analytics y gráficos
+          </span>
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -43,8 +43,8 @@ export function DatasetsUploadPanel({ onSuccess }: DatasetsUploadPanelProps) {
             Subir nuevo dataset
           </CardTitle>
           <CardDescription>
-            Arrastra un archivo o selecciónalo. El esquema y tipos de columna se detectan
-            automáticamente.
+            Selecciona un archivo, revísalo y luego pulsa &quot;Procesar dataset&quot; para detectar
+            el esquema y tipos de columna.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,11 +75,12 @@ export function DatasetsUploadPanel({ onSuccess }: DatasetsUploadPanelProps) {
 
         <Card className="border-0 bg-card/60 shadow-sm">
           <CardContent className="space-y-2 p-4 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Después de subir</p>
+            <p className="font-medium text-foreground">Después de procesar</p>
             <ul className="list-inside list-disc space-y-1 text-xs leading-relaxed">
-              <li>Se infieren tipos y nulos por columna</li>
-              <li>Analytics y gráficos se generan al estar listo</li>
-              <li>Puedes explorar con el constructor dinámico</li>
+              <li>1. Carga el archivo en la zona de subida</li>
+              <li>2. Pulsa &quot;Procesar dataset&quot;</li>
+              <li>3. Se infieren tipos y nulos por columna</li>
+              <li>4. Analytics y gráficos quedan disponibles al estar listo</li>
             </ul>
           </CardContent>
         </Card>
