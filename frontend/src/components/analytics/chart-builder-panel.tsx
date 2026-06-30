@@ -1,15 +1,16 @@
 "use client";
 
-import { BarChart3, ChevronDown, LineChart, PieChart, Sparkles, TrendingUp } from "lucide-react";
+import { ChevronDown, Settings2, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ChartTypeIcon } from "@/components/analytics/chart-type-icons";
 import {
   getColumnValues,
   isDimensionColumn,
 } from "@/components/analytics/chart-column-values";
 import { SegmentFilter } from "@/components/analytics/segment-filter";
 import { ChartPreviewSummary } from "@/components/analytics/chart-preview-summary";
-import { ValueChipPicker } from "@/components/analytics/value-chip-picker";
+import { XAxisTagFilter } from "@/components/analytics/x-axis-tag-filter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,18 +23,17 @@ import type { DatasetColumn } from "@/types/dataset";
 const CHART_OPTIONS: {
   value: WidgetType;
   label: string;
-  icon: typeof BarChart3;
   hint: string;
 }[] = [
-  { value: "bar", label: "Barras", icon: BarChart3, hint: "Comparar categorías" },
-  { value: "horizontal_bar", label: "H. barras", icon: BarChart3, hint: "Ranking top 10" },
-  { value: "line", label: "Línea", icon: LineChart, hint: "Tendencia en el tiempo" },
-  { value: "area", label: "Área", icon: TrendingUp, hint: "Volumen acumulado" },
-  { value: "pie", label: "Pastel", icon: PieChart, hint: "Proporción %" },
-  { value: "donut", label: "Dona", icon: PieChart, hint: "Participación" },
-  { value: "histogram", label: "Histograma", icon: BarChart3, hint: "Distribución numérica" },
-  { value: "scatter", label: "Scatter", icon: TrendingUp, hint: "Correlación" },
-  { value: "kpi", label: "KPI", icon: Sparkles, hint: "Un solo número" },
+  { value: "bar", label: "Barras", hint: "Comparar categorías" },
+  { value: "horizontal_bar", label: "Barras H.", hint: "Ranking top 10" },
+  { value: "line", label: "Línea", hint: "Tendencia en el tiempo" },
+  { value: "area", label: "Área", hint: "Volumen acumulado" },
+  { value: "pie", label: "Pastel", hint: "Proporción %" },
+  { value: "donut", label: "Dona", hint: "Participación" },
+  { value: "histogram", label: "Histograma", hint: "Distribución numérica" },
+  { value: "scatter", label: "Dispersión", hint: "Correlación entre variables" },
+  { value: "kpi", label: "KPI", hint: "Un solo número clave" },
 ];
 
 const AGG_OPTIONS = [
@@ -45,7 +45,29 @@ const AGG_OPTIONS = [
 const DIMENSION_CHART_TYPES: WidgetType[] = ["bar", "horizontal_bar", "pie", "donut"];
 
 const selectClass =
-  "flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-xs outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20";
+
+function StepHeader({ step, title }: { step: number; title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+        {step}
+      </span>
+      <h3 className="text-base font-semibold tracking-tight text-foreground">{title}</h3>
+    </div>
+  );
+}
+
+function xAxisLabel(chartType: WidgetType) {
+  if (chartType === "histogram" || chartType === "scatter") return "Eje X (Numérico)";
+  if (chartType === "line" || chartType === "area") return "Eje X (Fecha)";
+  return "Eje X (Dimensión)";
+}
+
+function yAxisLabel(chartType: WidgetType) {
+  if (chartType === "scatter") return "Eje Y (Numérico)";
+  return "Eje Y (Métrica)";
+}
 
 interface ChartBuilderPanelProps {
   columns: DatasetColumn[];
@@ -112,6 +134,7 @@ export function ChartBuilderPanel({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [dateOpen, setDateOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const defaultX = defaultsForChart(chartType, grouped).x;
   const defaultY = defaultsForChart(chartType, grouped).y;
@@ -203,228 +226,269 @@ export function ChartBuilderPanel({
   };
 
   return (
-    <Card className="overflow-hidden border shadow-sm">
-      <CardHeader className="border-b bg-muted/20 pb-4">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Explorador de gráficos
-        </CardTitle>
-        <CardDescription>
-          Elige el tipo, define los ejes y genera. Los filtros de categoría se reflejan en el eje X
-          o en la etiqueta del gráfico.
+    <Card className="overflow-hidden border border-border/80 bg-gradient-to-br from-violet-500/[0.03] via-background to-background shadow-md">
+      <CardHeader className="border-b border-border/60 bg-background/80 pb-5 pt-6">
+        <CardTitle className="text-xl font-bold tracking-tight">Explorador de Gráficos</CardTitle>
+        <CardDescription className="text-sm">
+          Configura tu visualización paso a paso.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-6 p-5">
-        {/* Paso 1 */}
-        <section className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            1 · Tipo de gráfico
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {CHART_OPTIONS.map((opt) => {
-              const Icon = opt.icon;
-              const active = chartType === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleChartTypeChange(opt.value)}
-                  className={cn(
-                    "flex min-w-[88px] shrink-0 flex-col items-center gap-1.5 rounded-xl border px-3 py-2.5 text-center transition-all",
-                    active
-                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/30"
-                      : "border-border bg-background hover:border-primary/30 hover:bg-muted/30",
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground")} />
-                  <span className="text-xs font-medium leading-tight">{opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Paso 2 */}
-        <section className="space-y-4 rounded-xl border bg-muted/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            2 · Ejes y medida
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {needsX && (
-              <div className="space-y-1.5">
-                <Label htmlFor="x-column">
-                  {chartType === "histogram" || chartType === "scatter"
-                    ? "Eje X (numérico)"
-                    : chartType === "line" || chartType === "area"
-                      ? "Eje X (fecha)"
-                      : "Eje X (categoría)"}
-                </Label>
-                <select
-                  id="x-column"
-                  className={selectClass}
-                  value={resolvedX}
-                  onChange={(e) => setXColumn(e.target.value)}
-                >
-                  <option value="">Seleccionar…</option>
-                  {xOptions.map((col) => (
-                    <option key={col.name} value={col.name}>
-                      {col.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {needsY && (
-              <div className="space-y-1.5">
-                <Label htmlFor="y-column">
-                  {chartType === "scatter" ? "Eje Y (numérico)" : "Eje Y (valor)"}
-                </Label>
-                <select
-                  id="y-column"
-                  className={selectClass}
-                  value={yColumn ?? defaultY ?? ""}
-                  onChange={(e) => setYColumn(e.target.value)}
-                >
-                  {supportsCountOnly && (
-                    <option value="">Conteo (sin columna Y)</option>
-                  )}
-                  {!supportsCountOnly && <option value="">Seleccionar…</option>}
-                  {yOptions.map((col) => (
-                    <option key={col.name} value={col.name}>
-                      {col.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {showAggregation && (
-              <div className="space-y-1.5 sm:col-span-2 sm:max-w-xs">
-                <Label htmlFor="aggregation">Agregación</Label>
-                <select
-                  id="aggregation"
-                  className={selectClass}
-                  value={effectiveAggregation}
-                  onChange={(e) => setAggregation(e.target.value as "sum" | "avg" | "count")}
-                  disabled={supportsCountOnly && !resolvedY}
-                >
-                  {AGG_OPTIONS.filter((opt) => chartType !== "kpi" || opt.value !== "count").map(
-                    (opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {showXValuePicker && (
-            <ValueChipPicker
-              label={`Valores visibles en el eje X (${resolvedX})`}
-              hint="Selecciona qué categorías aparecen en el gráfico. Si no eliges ninguna, se muestran todas."
-              options={xValueOptions}
-              value={xAxisValues}
-              onChange={setXAxisValues}
-            />
-          )}
-        </section>
-
-        {/* Paso 3 - opcional */}
-        <section className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            3 · Opciones avanzadas
-          </p>
-          <SegmentFilter
-            columns={columns}
-            analyticsColumns={analyticsColumns}
-            excludeColumn={resolvedX}
-            value={segmentFilters}
-            onChange={setSegmentFilters}
-          />
-
-          {dateRange && (
-            <div className="rounded-xl border bg-background/60">
-              <button
-                type="button"
-                onClick={() => setDateOpen((prev) => !prev)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-              >
-                <div>
-                  <p className="text-sm font-medium">Filtrar por fecha</p>
-                  <p className="text-xs text-muted-foreground">Opcional · recorta el periodo analizado</p>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 text-muted-foreground transition-transform",
-                    dateOpen && "rotate-180",
-                  )}
-                />
-              </button>
-              {dateOpen && (
-                <div className="grid gap-3 border-t px-4 py-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="date-from">Desde</Label>
-                    <Input
-                      id="date-from"
-                      type="date"
-                      min={dateRange.min}
-                      max={dateRange.max}
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="date-to">Hasta</Label>
-                    <Input
-                      id="date-to"
-                      type="date"
-                      min={dateRange.min}
-                      max={dateRange.max}
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                    />
-                  </div>
-                  {(dateFrom || dateTo) && (
-                    <Button
+      <CardContent className="p-5 lg:p-6">
+        <div className="grid gap-8 lg:grid-cols-[1fr_minmax(280px,380px)] lg:gap-10 xl:grid-cols-[1fr_400px]">
+          {/* Columna izquierda — configuración */}
+          <div className="space-y-8">
+            {/* Paso 1 */}
+            <section className="space-y-4">
+              <StepHeader step={1} title="Tipo de Gráfico" />
+              <div className="flex flex-wrap gap-2">
+                {CHART_OPTIONS.map((opt) => {
+                  const active = chartType === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="sm:col-span-2 sm:justify-start"
-                      onClick={() => {
-                        setDateFrom("");
-                        setDateTo("");
-                      }}
+                      title={opt.hint}
+                      onClick={() => handleChartTypeChange(opt.value)}
+                      className={cn(
+                        "flex w-[76px] shrink-0 flex-col items-center gap-1.5 rounded-xl border-2 bg-background px-2 py-2.5 transition-all",
+                        active
+                          ? "border-primary shadow-lg"
+                          : "border-border/80 hover:border-primary/40 hover:bg-muted/30",
+                      )}
                     >
-                      Limpiar fechas
-                    </Button>
+                      <ChartTypeIcon type={opt.value} />
+                      <span
+                        className={cn(
+                          "text-center text-[10px] leading-tight text-muted-foreground",
+                          active ? "font-semibold text-foreground" : "font-semibold",
+                        )}
+                      >
+                        {opt.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {CHART_OPTIONS.find((o) => o.value === chartType)?.label} —{" "}
+                {CHART_OPTIONS.find((o) => o.value === chartType)?.hint}
+              </p>
+            </section>
+
+            {/* Paso 2 */}
+            <section className="space-y-4">
+              <StepHeader step={2} title="Configuración de Ejes" />
+              <div className="space-y-4 rounded-xl border border-border/70 bg-muted/30 p-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {needsX && (
+                    <div className="space-y-2">
+                      <Label htmlFor="x-column" className="text-sm font-medium">
+                        {xAxisLabel(chartType)}
+                      </Label>
+                      <select
+                        id="x-column"
+                        className={selectClass}
+                        value={resolvedX}
+                        onChange={(e) => setXColumn(e.target.value)}
+                      >
+                        <option value="">Seleccionar…</option>
+                        {xOptions.map((col) => (
+                          <option key={col.name} value={col.name}>
+                            {col.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {needsY && (
+                    <div className="space-y-2">
+                      <Label htmlFor="y-column" className="text-sm font-medium">
+                        {yAxisLabel(chartType)}
+                      </Label>
+                      <select
+                        id="y-column"
+                        className={selectClass}
+                        value={yColumn ?? defaultY ?? ""}
+                        onChange={(e) => setYColumn(e.target.value)}
+                      >
+                        {supportsCountOnly && (
+                          <option value="">Conteo (sin columna Y)</option>
+                        )}
+                        {!supportsCountOnly && <option value="">Seleccionar…</option>}
+                        {yOptions.map((col) => (
+                          <option key={col.name} value={col.name}>
+                            {col.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                 </div>
-              )}
+
+                {showAggregation && (
+                  <div className="space-y-2">
+                    <Label htmlFor="aggregation" className="text-sm font-medium">
+                      Agregación (Eje Y)
+                    </Label>
+                    <select
+                      id="aggregation"
+                      className={selectClass}
+                      value={effectiveAggregation}
+                      onChange={(e) => setAggregation(e.target.value as "sum" | "avg" | "count")}
+                      disabled={supportsCountOnly && !resolvedY}
+                    >
+                      {AGG_OPTIONS.filter(
+                        (opt) => chartType !== "kpi" || opt.value !== "count",
+                      ).map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {showXValuePicker && resolvedX && (
+                  <XAxisTagFilter
+                    columnName={resolvedX}
+                    options={xValueOptions}
+                    value={xAxisValues}
+                    onChange={setXAxisValues}
+                  />
+                )}
+              </div>
+            </section>
+
+            {/* Paso 3 */}
+            <section className="space-y-3">
+              <StepHeader step={3} title="Opciones avanzadas" />
+              <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen((prev) => !prev)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-muted/20"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Settings2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Segmentación y fechas</span>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform",
+                      advancedOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+                {advancedOpen && (
+                  <div className="space-y-4 border-t border-border/60 px-4 py-4">
+                    <SegmentFilter
+                      columns={columns}
+                      analyticsColumns={analyticsColumns}
+                      excludeColumn={resolvedX}
+                      value={segmentFilters}
+                      onChange={setSegmentFilters}
+                    />
+
+                    {dateRange && (
+                      <div className="rounded-lg border border-border/60 bg-muted/20">
+                        <button
+                          type="button"
+                          onClick={() => setDateOpen((prev) => !prev)}
+                          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
+                        >
+                          <span className="text-sm font-medium">Filtrar por fecha</span>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform",
+                              dateOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
+                        {dateOpen && (
+                          <div className="grid gap-3 border-t px-3 py-3 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label htmlFor="date-from">Desde</Label>
+                              <Input
+                                id="date-from"
+                                type="date"
+                                min={dateRange.min}
+                                max={dateRange.max}
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label htmlFor="date-to">Hasta</Label>
+                              <Input
+                                id="date-to"
+                                type="date"
+                                min={dateRange.min}
+                                max={dateRange.max}
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                              />
+                            </div>
+                            {(dateFrom || dateTo) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="sm:col-span-2 sm:justify-start"
+                                onClick={() => {
+                                  setDateFrom("");
+                                  setDateTo("");
+                                }}
+                              >
+                                Limpiar fechas
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* Columna derecha — vista previa + CTA */}
+          <div className="flex flex-col gap-5 lg:sticky lg:top-4 lg:self-start">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Vista previa:{" "}
+                <span className="font-normal text-muted-foreground">
+                  Así se verá tu gráfico.
+                </span>
+              </p>
             </div>
-          )}
-        </section>
 
-        <section className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Vista previa
-          </p>
-          <ChartPreviewSummary model={previewModel} />
-        </section>
+            <ChartPreviewSummary model={previewModel} variant="panel" />
 
-        <div className="flex flex-wrap items-center gap-3 border-t pt-4">
-          <Button
-            size="lg"
-            onClick={handleSubmit}
-            disabled={isLoading || (needsX && !resolvedX)}
-          >
-            {isLoading ? "Generando…" : "Generar gráfico"}
-          </Button>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button
+              size="lg"
+              className="h-12 w-full gap-2 text-base font-semibold shadow-md"
+              onClick={handleSubmit}
+              disabled={isLoading || (needsX && !resolvedX)}
+            >
+              {isLoading ? (
+                "Generando…"
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" />
+                  Generar Gráfico
+                </>
+              )}
+            </Button>
+
+            {error && (
+              <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
