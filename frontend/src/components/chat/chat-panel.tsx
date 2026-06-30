@@ -3,6 +3,7 @@
 import { Loader2, MessageSquare, Send, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ChatAssistantLoading } from "@/components/chat/chat-assistant-loading";
 import { ChatFollowUpSuggestions } from "@/components/chat/chat-follow-up-suggestions";
 import { ChatChartsSection } from "@/components/chat/chat-charts-section";
 import { ChatMessage } from "@/components/chat/chat-message";
