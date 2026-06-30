@@ -10,7 +10,7 @@ import {
 import { CHARTS_GRID_CLASS } from "@/components/charts/chart-grid-layout";
 import { DashboardWidgetRenderer } from "@/components/charts/dashboard-widget-renderer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useBuildChart, useDashboard } from "@/hooks/use-dashboard";
 import { useDataset } from "@/hooks/use-datasets";
 import type { ChartBuildRequest, DashboardWidget } from "@/types/dashboard";
@@ -131,17 +131,16 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
         </div>
       ) : (
         <Card className="border border-dashed bg-muted/20 shadow-none">
-          <CardHeader className="items-center text-center">
-            <div className="mb-2 rounded-full bg-muted p-3">
+          <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="mb-4 rounded-full bg-muted p-3">
               <LineChart className="h-6 w-6 text-muted-foreground" />
             </div>
-            <CardTitle className="text-base">Sin gráficos aún</CardTitle>
-            <CardDescription className="max-w-md">
+            <h3 className="text-base font-semibold">Sin gráficos aún</h3>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
               Usa el explorador para elegir columnas y tipo de gráfico, o haz clic en una
               sugerencia rápida para empezar.
-            </CardDescription>
-          </CardHeader>
-          <CardContent />
+            </p>
+          </CardContent>
         </Card>
       )}
     </section>
