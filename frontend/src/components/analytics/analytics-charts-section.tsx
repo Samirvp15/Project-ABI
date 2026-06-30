@@ -1,17 +1,19 @@
 "use client";
 
-import { BarChart3, LineChart, Sparkles, X } from "lucide-react";
+import { BarChart3, LineChart, Loader2, Sparkles, X } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import {
   ChartBuilderPanel,
   ChartSuggestionChip,
+  ChartSuggestionsSkeleton,
 } from "@/components/analytics/chart-builder-panel";
 import { CHARTS_GRID_CLASS } from "@/components/charts/chart-grid-layout";
 import { DashboardWidgetRenderer } from "@/components/charts/dashboard-widget-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useBuildChart, useDashboard } from "@/hooks/use-dashboard";
+import { useAnalytics } from "@/hooks/use-analytics";
 import { useDataset } from "@/hooks/use-datasets";
 import type { ChartBuildRequest, DashboardWidget } from "@/types/dashboard";
 
@@ -26,7 +28,12 @@ interface AnalyticsChartsSectionProps {
 
 export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProps) {
   const { data: dataset } = useDataset(datasetId);
-  const { data: dashboardMeta } = useDashboard(datasetId);
+  const { data: analytics } = useAnalytics(datasetId);
+  const {
+    data: dashboardMeta,
+    isLoading: loadingDashboard,
+    isFetching: fetchingDashboard,
+  } = useDashboard(datasetId);
   const buildChart = useBuildChart(datasetId);
   const [activeCharts, setActiveCharts] = useState<ActiveChart[]>([]);
   const [builderError, setBuilderError] = useState<string | null>(null);
@@ -56,6 +63,8 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
     .filter((w) => w.type !== "kpi")
     .slice(0, 8);
 
+  const loadingSuggestions = loadingDashboard || (fetchingDashboard && !dashboardMeta);
+
   return (
     <section className="space-y-6">
       <div className="flex items-start gap-3">
@@ -75,6 +84,7 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
       {dataset?.columns && (
         <ChartBuilderPanel
           columns={dataset.columns}
+          analyticsColumns={analytics?.columns}
           dateRange={dashboardMeta?.date_range ?? null}
           onGenerate={handleGenerate}
           isLoading={buildChart.isPending}
@@ -82,22 +92,33 @@ export function AnalyticsChartsSection({ datasetId }: AnalyticsChartsSectionProp
         />
       )}
 
-      {suggestions.length > 0 && (
+      {(loadingSuggestions || suggestions.length > 0) && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-500" />
+            {loadingSuggestions ? (
+              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-amber-500" />
+            )}
             <p className="text-sm font-medium">Sugerencias rápidas</p>
+            {loadingSuggestions && (
+              <span className="text-xs text-muted-foreground">Cargando gráficos sugeridos…</span>
+            )}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {suggestions.map((widget) => (
-              <ChartSuggestionChip
-                key={widget.id}
-                label={widget.title}
-                chartType={widget.type}
-                onClick={() => handleSuggestion(widget)}
-              />
-            ))}
-          </div>
+          {loadingSuggestions ? (
+            <ChartSuggestionsSkeleton />
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {suggestions.map((widget) => (
+                <ChartSuggestionChip
+                  key={widget.id}
+                  label={widget.title}
+                  chartType={widget.type}
+                  onClick={() => handleSuggestion(widget)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -83,6 +83,56 @@ def test_build_custom_chart_pie():
     assert all("name" in item and "value" in item for item in result["data"])
 
 
+def test_build_custom_chart_column_filters():
+    result = build_custom_chart(
+        _sales_columns(),
+        _sales_rows(),
+        chart_type="bar",
+        x_column="producto",
+        y_column="ventas",
+        aggregation="sum",
+        column_filters={"region": ["Lima"]},
+    )
+    assert result["type"] == "bar"
+    assert len(result["data"]) == 2
+    labels = {point["x"] for point in result["data"]}
+    assert labels == {"A", "B"}
+
+
+def test_build_custom_chart_axis_labels():
+    result = build_custom_chart(
+        _sales_columns(),
+        _sales_rows(),
+        chart_type="bar",
+        x_column="region",
+        y_column="ventas",
+        aggregation="sum",
+    )
+    assert result["config"]["x_label"] == "Region"
+    assert result["config"]["y_label"] == "Suma de Ventas"
+
+
+def test_build_custom_chart_filter_summary_on_axis():
+    result = build_custom_chart(
+        _sales_columns(),
+        _sales_rows(),
+        chart_type="bar",
+        x_column="region",
+        y_column="ventas",
+        aggregation="sum",
+        column_filters={"region": ["Lima"]},
+    )
+    assert result["config"]["filter_summary"] == "Region = Lima"
+    assert "Lima" in result["config"]["x_label"]
+
+
+def test_build_dashboard_widgets_have_axis_labels():
+    result = build_dashboard(_sales_columns(), _sales_rows())
+    bar = next(w for w in result["widgets"] if w["type"] == "bar")
+    assert bar["config"].get("x_label")
+    assert bar["config"].get("y_label")
+
+
 def test_empty_dataset_returns_no_widgets():
     result = build_dashboard([], [])
 

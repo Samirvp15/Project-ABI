@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ChartWidgetHeader } from "@/components/charts/chart-widget-header";
 import { PieChartInner } from "@/components/charts/pie-chart-inner";
+import { Card, CardContent } from "@/components/ui/card";
 import type { DashboardWidget } from "@/types/dashboard";
 
 interface DonutChartWidgetProps {
@@ -18,9 +14,7 @@ export function DonutChartWidget({ widget }: DonutChartWidgetProps) {
 
   return (
     <Card className="flex h-full flex-col">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base leading-snug">{widget.title}</CardTitle>
-      </CardHeader>
+      <ChartWidgetHeader widget={widget} />
       <CardContent className="min-h-[300px] flex-1 pb-4">
         <PieChartInner data={data} innerRadius={52} />
       </CardContent>

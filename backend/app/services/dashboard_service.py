@@ -79,6 +79,7 @@ class DashboardService:
                 aggregation=request.aggregation,
                 date_from=request.date_from,
                 date_to=request.date_to,
+                column_filters=request.column_filters,
             )
         except ValueError as exc:
             raise HTTPException(

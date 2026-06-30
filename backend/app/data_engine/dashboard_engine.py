@@ -44,6 +44,115 @@ def _filter_rows(
     return df.loc[mask].copy()
 
 
+def _filter_by_column_values(
+    df: pd.DataFrame,
+    column_filters: dict[str, list[str]] | None,
+) -> pd.DataFrame:
+    if df.empty or not column_filters:
+        return df
+
+    filtered = df
+    for column, values in column_filters.items():
+        if column not in filtered.columns or not values:
+            continue
+        allowed = {str(value) for value in values}
+        mask = filtered[column].astype(str).isin(allowed)
+        filtered = filtered.loc[mask]
+    return filtered.copy()
+
+
+def _humanize_column(name: str | None) -> str:
+    if not name:
+        return ""
+    return str(name).replace("_", " ").strip().title()
+
+
+def _metric_axis_label(y_column: str | None, aggregation: str) -> str:
+    if not y_column:
+        return "Cantidad de registros"
+    label = _humanize_column(y_column)
+    if aggregation == "avg":
+        return f"Promedio de {label}"
+    if aggregation == "sum":
+        return f"Suma de {label}"
+    if aggregation == "count":
+        return f"Conteo de {label}"
+    return label
+
+
+def _format_filter_summary(column_filters: dict[str, list[str]] | None) -> str | None:
+    if not column_filters:
+        return None
+    parts: list[str] = []
+    for column, values in column_filters.items():
+        if not values:
+            continue
+        label = _humanize_column(column)
+        if len(values) == 1:
+            parts.append(f"{label} = {values[0]}")
+        else:
+            parts.append(f"{label} ∈ [{', '.join(values)}]")
+    return " · ".join(parts) if parts else None
+
+
+def _apply_chart_context(
+    widget: dict[str, Any],
+    *,
+    column_filters: dict[str, list[str]] | None,
+    date_from: str | None,
+    date_to: str | None,
+) -> None:
+    config = widget.setdefault("config", {})
+    if column_filters:
+        config["filter_summary"] = _format_filter_summary(column_filters)
+
+        dimension_col = (
+            config.get("x_column") or config.get("label_column") or config.get("column")
+        )
+        if dimension_col and dimension_col in column_filters:
+            selected = column_filters[dimension_col]
+            if selected and config.get("x_label"):
+                config["x_label"] = (
+                    f"{config['x_label']} — {', '.join(selected)}"
+                )
+
+    date_parts: list[str] = []
+    if date_from:
+        date_parts.append(f"desde {date_from}")
+    if date_to:
+        date_parts.append(f"hasta {date_to}")
+    if date_parts:
+        config["date_filter_summary"] = " ".join(date_parts)
+
+
+def _apply_axis_labels(widget: dict[str, Any]) -> None:
+    chart_type = widget.get("type")
+    config = widget.setdefault("config", {})
+    aggregation = str(config.get("aggregation") or "sum")
+
+    if chart_type in {"pie", "donut", "kpi"}:
+        return
+
+    x_col = config.get("x_column") or config.get("label_column") or config.get("column")
+    y_col = config.get("y_column") or config.get("value_column")
+
+    if chart_type == "histogram":
+        config["x_label"] = _humanize_column(str(x_col or ""))
+        config["y_label"] = "Frecuencia"
+    elif chart_type == "scatter":
+        config["x_label"] = _humanize_column(str(x_col or ""))
+        config["y_label"] = _humanize_column(str(y_col or ""))
+    elif chart_type == "horizontal_bar":
+        config["x_label"] = _metric_axis_label(str(y_col) if y_col else None, aggregation)
+        config["y_label"] = _humanize_column(str(x_col or ""))
+    elif chart_type in {"line", "area"}:
+        config["x_label"] = _humanize_column(str(x_col or "Fecha"))
+        config["y_label"] = _metric_axis_label(str(y_col) if y_col else None, aggregation)
+    elif chart_type == "bar":
+        config["x_label"] = _humanize_column(str(x_col or ""))
+        config["y_label"] = _metric_axis_label(str(y_col) if y_col else None, aggregation)
+
+
 def _date_range(df: pd.DataFrame, date_column: str | None) -> dict[str, str] | None:
     if not date_column or date_column not in df.columns or df.empty:
         return None
@@ -362,6 +471,9 @@ def build_dashboard(
                 }
             )
 
+    for widget in widgets:
+        _apply_axis_labels(widget)
+
     return {
         "date_column": date_column,
         "date_range": full_range,
@@ -410,6 +522,7 @@ def build_custom_chart(
     aggregation: str = "sum",
     date_from: str | None = None,
     date_to: str | None = None,
+    column_filters: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     if chart_type not in ALLOWED_CHART_TYPES:
         raise ValueError(f"Tipo de gráfico no soportado: {chart_type}")
@@ -422,6 +535,9 @@ def build_custom_chart(
     types = _column_types(columns_meta)
     date_filter_col = _resolve_date_filter_column(columns_meta, x_column, by_type)
     filtered = _filter_rows(df, date_filter_col, date_from, date_to)
+    filtered = _filter_by_column_values(filtered, column_filters)
+    if column_filters and filtered.empty:
+        raise ValueError("No hay datos después de aplicar los filtros por valor seleccionados")
 
     agg = aggregation if aggregation in {"sum", "avg", "count"} else "sum"
     widget: dict[str, Any] | None = None
@@ -535,4 +651,11 @@ def build_custom_chart(
     if not widget:
         raise ValueError("No se pudo generar el gráfico")
 
+    _apply_axis_labels(widget)
+    _apply_chart_context(
+        widget,
+        column_filters=column_filters,
+        date_from=date_from,
+        date_to=date_to,
+    )
     return widget

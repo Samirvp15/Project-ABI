@@ -46,4 +46,5 @@ export interface ChartBuildRequest {
   aggregation?: "sum" | "avg" | "count";
   date_from?: string;
   date_to?: string;
+  column_filters?: Record<string, string[]>;
 }
