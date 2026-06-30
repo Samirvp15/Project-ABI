@@ -3,13 +3,14 @@
 import { Loader2, MessageSquare, Send, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ChatMessage } from "@/components/chat/chat-message";
+import { ChatAssistantLoading } from "@/components/chat/chat-assistant-loading";
 import { ChatChartsSection } from "@/components/chat/chat-charts-section";
+import { ChatMessage } from "@/components/chat/chat-message";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useChatMessages, useChatSessions, useSendChatMessage } from "@/hooks/use-ai-chat";
 import { cn } from "@/lib/utils";
-import type { ChatChartWidget } from "@/types/ai";
+import type { ChatChartWidget, ChatMessageItem } from "@/types/ai";
 
 const SUGGESTIONS = [
   "Resume este dataset",
@@ -23,10 +24,20 @@ interface ChatPanelProps {
   datasetName: string;
 }
 
+function buildPendingUserMessage(content: string): ChatMessageItem {
+  return {
+    id: `pending-user-${content}`,
+    role: "user",
+    content,
+    created_at: new Date().toISOString(),
+  };
+}
+
 export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pendingUserText, setPendingUserText] = useState<string | null>(null);
   const [liveCharts, setLiveCharts] = useState<ChatChartWidget[] | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -38,16 +49,27 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
   const showLiveCharts = !!liveCharts?.length && !lastAssistant?.charts?.length;
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, sendMessage.isPending, liveCharts]);
+  const pendingUserInHistory =
+    pendingUserText &&
+    messages.some((m) => m.role === "user" && m.content === pendingUserText);
+
+  const showPendingTurn = !!pendingUserText && !pendingUserInHistory;
 
   useEffect(() => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sendMessage.isPending, liveCharts, pendingUserText]);
+
+  useEffect(() => {
     if (lastAssistant?.charts?.length) {
       setLiveCharts(null);
     }
-  }, [messages]);
+  }, [lastAssistant?.charts]);
+
+  useEffect(() => {
+    if (!sendMessage.isPending && pendingUserText && pendingUserInHistory) {
+      setPendingUserText(null);
+    }
+  }, [sendMessage.isPending, pendingUserText, pendingUserInHistory]);
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -55,6 +77,7 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
       if (!trimmed || sendMessage.isPending) return;
 
       setError(null);
+      setPendingUserText(trimmed);
       setInput("");
 
       try {
@@ -67,11 +90,18 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
           setLiveCharts(response.charts);
         }
       } catch (err) {
+        setPendingUserText(null);
         setError(err instanceof Error ? err.message : "Error al enviar mensaje");
       }
     },
     [sendMessage, effectiveSessionId],
   );
+
+  const showEmptyState =
+    !effectiveSessionId &&
+    messages.length === 0 &&
+    !sendMessage.isPending &&
+    !showPendingTurn;
 
   return (
     <Card className="flex h-[calc(100vh-12rem)] min-h-[520px] flex-col border-0 bg-card/80 shadow-sm">
@@ -81,8 +111,7 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
           Chat con {datasetName}
         </CardTitle>
         <CardDescription>
-          Pregunta sobre tus datos, pide gráficos del dashboard o un resumen del dataset. La IA
-          responde con SQL, visualizaciones y explicaciones.
+          Pregunta sobre tus datos, pide uno o varios gráficos, o un resumen del dataset.
         </CardDescription>
       </CardHeader>
 
@@ -92,14 +121,14 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
             <p className="text-center text-sm text-muted-foreground">Cargando historial…</p>
           )}
 
-          {!effectiveSessionId && messages.length === 0 && !sendMessage.isPending && (
+          {showEmptyState && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="mb-4 rounded-full bg-violet-500/10 p-4">
                 <Sparkles className="h-8 w-8 text-violet-600" />
               </div>
               <h3 className="font-semibold">Empieza una conversación</h3>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Ejemplo: &quot;¿Cuál fue mi mejor mes de ventas?&quot;
+                Ejemplo: &quot;Muéstrame gráficos de ventas por país y por categoría&quot;
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {SUGGESTIONS.map((s) => (
@@ -121,17 +150,17 @@ export function ChatPanel({ datasetId, datasetName }: ChatPanelProps) {
             <ChatMessage key={message.id} message={message} />
           ))}
 
+          {showPendingTurn && (
+            <div className="space-y-3">
+              <ChatMessage message={buildPendingUserMessage(pendingUserText)} />
+              {sendMessage.isPending && <ChatAssistantLoading />}
+            </div>
+          )}
+
           {showLiveCharts && liveCharts && (
             <div className="flex gap-3">
               <div className="h-8 w-8 shrink-0" />
               <ChatChartsSection charts={liveCharts} />
-            </div>
-          )}
-
-          {sendMessage.isPending && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Analizando datos…
             </div>
           )}
 

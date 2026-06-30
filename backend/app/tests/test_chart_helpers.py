@@ -1,6 +1,7 @@
 from app.ai.chart_helpers import (
     build_widget_from_sql_result,
     match_widgets_by_message,
+    normalize_chart_builds,
     pick_overview_widgets,
     resolve_widgets_by_ids,
 )
@@ -34,6 +35,23 @@ def test_build_widget_from_sql_result_bar():
     assert widget is not None
     assert widget["type"] == "bar"
     assert len(widget["data"]) == 2
+
+
+def test_normalize_chart_builds_prefers_array():
+    plan = {
+        "chart_builds": [{"chart_type": "bar", "x_column": "a", "y_column": "b"}],
+        "chart_build": {"chart_type": "pie", "x_column": "c"},
+    }
+    builds = normalize_chart_builds(plan)
+    assert len(builds) == 1
+    assert builds[0]["chart_type"] == "bar"
+
+
+def test_normalize_chart_builds_fallback_single():
+    plan = {"chart_build": {"chart_type": "line", "x_column": "date", "y_column": "sales"}}
+    builds = normalize_chart_builds(plan)
+    assert len(builds) == 1
+    assert builds[0]["chart_type"] == "line"
 
 
 def test_pick_overview_widgets_prioritizes_kpi():

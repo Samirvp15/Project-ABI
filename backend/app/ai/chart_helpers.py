@@ -2,13 +2,58 @@
 
 from typing import Any
 
+from app.data_engine.dashboard_engine import build_custom_chart
 from app.schemas.ai import ChartHint
+
+MAX_CHAT_CHARTS = 8
+
+
+def normalize_chart_builds(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    builds = plan.get("chart_builds")
+    if isinstance(builds, list):
+        return [item for item in builds if isinstance(item, dict)][:MAX_CHAT_CHARTS]
+    single = plan.get("chart_build")
+    if isinstance(single, dict) and single:
+        return [single]
+    return []
+
+
+def build_widgets_from_specs(
+    columns_meta: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    builds: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    widgets: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for cfg in builds[:MAX_CHAT_CHARTS]:
+        try:
+            widgets.append(
+                build_custom_chart(
+                    columns_meta,
+                    rows,
+                    chart_type=str(cfg.get("chart_type") or "bar"),
+                    x_column=cfg.get("x_column"),
+                    y_column=cfg.get("y_column"),
+                    aggregation=str(cfg.get("aggregation") or "sum"),
+                )
+            )
+        except ValueError as exc:
+            errors.append(str(exc))
+    return widgets, errors
 
 
 def match_widgets_by_message(
-    message: str, widgets: list[dict[str, Any]], limit: int = 3
+    message: str, widgets: list[dict[str, Any]], limit: int = MAX_CHAT_CHARTS
 ) -> list[dict[str, Any]]:
     msg = message.lower()
+    wants_all = any(
+        phrase in msg
+        for phrase in ("todos los gráficos", "todos los graficos", "todos gráficos", "all charts")
+    )
+    if wants_all:
+        chart_widgets = [w for w in widgets if w.get("type") != "kpi"]
+        return chart_widgets[:limit]
+
     scored: list[tuple[int, dict[str, Any]]] = []
     for widget in widgets:
         title = str(widget.get("title", "")).lower()
@@ -29,7 +74,7 @@ def match_widgets_by_message(
 
 
 def resolve_widgets_by_ids(
-    widget_ids: list[str], widgets: list[dict[str, Any]], limit: int = 3
+    widget_ids: list[str], widgets: list[dict[str, Any]], limit: int = MAX_CHAT_CHARTS
 ) -> list[dict[str, Any]]:
     by_id = {widget["id"]: widget for widget in widgets}
     resolved = [by_id[wid] for wid in widget_ids if wid in by_id]
@@ -99,7 +144,9 @@ def build_widget_from_sql_result(
     return None
 
 
-def pick_overview_widgets(widgets: list[dict[str, Any]], limit: int = 4) -> list[dict[str, Any]]:
+def pick_overview_widgets(
+    widgets: list[dict[str, Any]], limit: int = MAX_CHAT_CHARTS
+) -> list[dict[str, Any]]:
     priority = {"kpi": 0, "line": 1, "bar": 2, "pie": 3, "donut": 4, "area": 5}
     sorted_widgets = sorted(
         widgets,

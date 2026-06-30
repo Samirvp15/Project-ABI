@@ -11,15 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 from app.ai.chart_helpers import (
-
+    MAX_CHAT_CHARTS,
     build_widget_from_sql_result,
-
+    build_widgets_from_specs,
     match_widgets_by_message,
-
+    normalize_chart_builds,
     pick_overview_widgets,
-
     resolve_widgets_by_ids,
-
 )
 
 from app.ai.openai_client import (
@@ -36,7 +34,7 @@ from app.ai.openai_client import (
 
 from app.core.config import settings
 
-from app.data_engine.dashboard_engine import build_custom_chart, build_dashboard
+from app.data_engine.dashboard_engine import build_dashboard
 
 from app.data_engine.duckdb_engine import SQLExecutionError, SQLValidationError, execute_select
 
@@ -338,7 +336,7 @@ class AIService:
 
             if not chart_widgets and all_widgets:
 
-                chart_widgets = pick_overview_widgets(all_widgets, limit=2)
+                chart_widgets = pick_overview_widgets(all_widgets, limit=MAX_CHAT_CHARTS)
 
             if chart_widgets:
 
@@ -362,31 +360,19 @@ class AIService:
 
             sql = None
 
-            build_cfg = plan.get("chart_build") or {}
+            builds = normalize_chart_builds(plan)
 
-            try:
+            chart_widgets, build_errors = build_widgets_from_specs(columns_meta, rows, builds)
 
-                widget = build_custom_chart(
+            if chart_widgets:
 
-                    columns_meta,
+                if build_errors:
 
-                    rows,
+                    answer = f"{answer} (Se omitieron {len(build_errors)} gráfico(s) por configuración inválida.)"
 
-                    chart_type=str(build_cfg.get("chart_type") or "bar"),
+            elif build_errors:
 
-                    x_column=build_cfg.get("x_column"),
-
-                    y_column=build_cfg.get("y_column"),
-
-                    aggregation=str(build_cfg.get("aggregation") or "sum"),
-
-                )
-
-                chart_widgets = [widget]
-
-            except ValueError as exc:
-
-                answer = f"No pude generar el gráfico solicitado: {exc}"
+                answer = f"No pude generar los gráficos solicitados: {'; '.join(build_errors[:3])}"
 
 
 
@@ -394,7 +380,7 @@ class AIService:
 
             sql = None
 
-            chart_widgets = pick_overview_widgets(all_widgets, limit=4)
+            chart_widgets = pick_overview_widgets(all_widgets, limit=MAX_CHAT_CHARTS)
 
             if not answer or answer == "Consulta procesada.":
 
