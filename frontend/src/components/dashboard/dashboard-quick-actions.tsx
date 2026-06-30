@@ -26,13 +26,13 @@ const actions = [
   },
   {
     title: "AI Chat",
-    description: "Pregunta en lenguaje natural sobre tus datos. Próximamente.",
-    href: null,
+    description: "Pregunta en lenguaje natural sobre tus datos con SQL seguro y explicaciones.",
+    href: "/chat",
     icon: MessageSquare,
-    accent: "from-muted/50 to-muted/30 border-border",
-    iconBg: "bg-muted text-muted-foreground",
-    cta: "Sprint 4",
-    active: false,
+    accent: "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    cta: "Abrir chat",
+    active: true,
   },
 ];
 

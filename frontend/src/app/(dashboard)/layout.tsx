@@ -16,7 +16,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, short: "Inicio" },
   { href: "/datasets", label: "Datasets", icon: Upload, short: "Datos" },
   { href: "/analytics", label: "Analytics", icon: BarChart3, short: "Gráficos" },
-  { href: "#", label: "AI Chat", icon: MessageSquare, short: "Chat", disabled: true },
+  { href: "/chat", label: "AI Chat", icon: MessageSquare, short: "Chat", disabled: false },
 ];
 
 function DashboardShell({ children }: { children: React.ReactNode }) {

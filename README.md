@@ -107,6 +107,17 @@ npm run dev
 - [x] UI: `/analytics/[id]` con gráficos (barras, línea, pastel) + métricas por columna
 - [x] Filtro por rango de fechas en sección gráfica
 
+## Sprint 4 — Completado
+
+- [x] Motor DuckDB in-memory para SQL seguro (solo SELECT)
+- [x] Validación read-only de SQL generado
+- [x] Integración OpenAI (gpt-4o-mini) con prompts estructurados
+- [x] `POST /api/v1/ai/chat` — pregunta → SQL → resultado → explicación
+- [x] Sesiones y historial (`chat_sessions`, `chat_messages`)
+- [x] `GET /api/v1/ai/datasets/{id}/sessions` + `GET /api/v1/ai/sessions/{id}/messages`
+- [x] Rate limit: 20 consultas/hora por usuario
+- [x] UI: `/chat` + `/chat/[id]` con panel de chat, SQL transparente y tabla de resultados
+
 ## API Endpoints
 
 | Método | Endpoint | Descripción |
@@ -125,7 +136,20 @@ npm run dev
 | POST | `/api/v1/analytics/{id}/refresh` | Recalcular analytics |
 | GET | `/api/v1/dashboard/{id}` | Dashboard auto-generado (widgets + datos) |
 | POST | `/api/v1/dashboard/{id}/chart` | Gráfico dinámico (tipo, columnas, agregación) |
+| POST | `/api/v1/ai/chat` | Pregunta en lenguaje natural sobre un dataset |
+| GET | `/api/v1/ai/datasets/{id}/sessions` | Sesiones de chat del dataset |
+| GET | `/api/v1/ai/sessions/{id}/messages` | Historial de mensajes |
+
+## Configuración IA
+
+Añade tu clave en `.env`:
+
+```env
+OPENAI_API_KEY=sk-your-key-here
+```
+
+Sin clave, el chat responde con error 503 (analytics y dashboards siguen funcionando).
 
 ## Próximo paso
 
-**Sprint 4:** AI Chat con consultas en lenguaje natural (`POST /ai/chat`).
+**Phase 2:** exportar resultados, multi-sheet Excel, jobs en background.
